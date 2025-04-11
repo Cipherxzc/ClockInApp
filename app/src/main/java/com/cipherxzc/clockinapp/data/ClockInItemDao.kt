@@ -17,4 +17,7 @@ interface ClockInItemDao {
 
     @Query("UPDATE clock_in_items SET clockInCount = clockInCount + 1 WHERE itemId = :itemId")
     suspend fun incrementClockInCount(itemId: Int)
+
+    @Query("UPDATE clock_in_items SET clockInCount = clockInCount - 1 WHERE itemId = :itemId")
+    suspend fun decrementClockInCount(itemId: Int)
 }
