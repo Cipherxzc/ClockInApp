@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,19 +47,52 @@ import java.time.LocalDateTime
 fun ClockInItemListScreen(
     onItemClicked: (Int) -> Unit
 ) {
+    val itemsState = remember { mutableStateOf(listOf<ClockInItem>()) }
+    val showDialogState = remember { mutableStateOf(false) }
+
+    // 整体页面结构：Scaffold 包含 TopAppBar 和 FloatingActionButton
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Clock-In App") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // 点击添加按钮后显示输入对话框
+                    showDialogState.value = true
+                }
+            ) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add New Item")
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            ClockInItemList(
+                itemsState = itemsState,
+                onItemClicked = onItemClicked
+            )
+
+            AddItemDialog(
+                itemsState = itemsState,
+                showDialogState = showDialogState
+            )
+        }
+    }
+}
+
+@Composable
+fun ClockInItemList(
+    itemsState: MutableState<List<ClockInItem>>,
+    onItemClicked: (Int) -> Unit
+){
     val clockInItemDao = LocalClockInItemDao.current
     val clockInRecordDao = LocalClockInRecordDao.current
-
-    var items by remember { mutableStateOf(listOf<ClockInItem>()) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var newItemName by remember { mutableStateOf("") }
-    var newItemDescription by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     // 初始加载数据
     LaunchedEffect(Unit) {
         coroutineScope.launch(Dispatchers.IO) {
-            items = clockInItemDao.getAllItems()
+            itemsState.value = clockInItemDao.getAllItems()
         }
     }
 
@@ -73,123 +107,116 @@ fun ClockInItemListScreen(
             clockInRecordDao.insert(record)
             val updatedItem = clockInItemDao.getAllItems().first { it.id == item.id }
             withContext(Dispatchers.Main) {
-                items = items.map {
+                itemsState.value = itemsState.value.map {
                     if (it.id == item.id) updatedItem else it
                 }
             }
         }
     }
 
-    // 整体页面结构：Scaffold 包含 TopAppBar 和 FloatingActionButton
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Clock-In App") })
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // 点击添加按钮后显示输入对话框
-                    showAddDialog = true
-                }
-            ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add New Item")
-            }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                items(items) { item ->
-                    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(item.name)
-                            IconButton(onClick = { onItemClicked(item.id) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.List,
-                                    contentDescription = "View Details"
-                                )
-                            }
-                            IconButton(onClick = { onClockIn(item) }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Done,
-                                    contentDescription = "Clock In"
-                                )
-                            }
-                        }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        items(itemsState.value) { item ->
+            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(item.name)
+                    IconButton(onClick = { onItemClicked(item.id) }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.List,
+                            contentDescription = "View Details"
+                        )
+                    }
+                    IconButton(onClick = { onClockIn(item) }) {
+                        Icon(
+                            imageVector = Icons.Filled.Done,
+                            contentDescription = "Clock In"
+                        )
                     }
                 }
             }
+        }
+    }
+}
 
-            // 当 showAddDialog 为 true 时显示 AlertDialog 对话框
-            if (showAddDialog) {
-                AlertDialog(
-                    onDismissRequest = { showAddDialog = false },
-                    title = { Text("Add New Clock-In Item") },
-                    text = {
-                        Column {
-                            OutlinedTextField(
-                                value = newItemName,
-                                onValueChange = { newItemName = it },
-                                label = { Text("Name") },
-                                placeholder = { Text("Enter item name") }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = newItemDescription,
-                                onValueChange = { newItemDescription = it },
-                                label = { Text("Description (Optional)") },
-                                placeholder = { Text("Enter description") }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                // 当用户输入的 name 非空时，进行添加操作
-                                if (newItemName.isNotBlank()) {
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        val newItem = ClockInItem(
-                                            name = newItemName,
-                                            description = newItemDescription
-                                        )
-                                        clockInItemDao.insert(newItem)
-                                        val newItems = clockInItemDao.getAllItems()
-                                        withContext(Dispatchers.Main) {
-                                            items = newItems
-                                            // 清空输入，并关闭对话框
-                                            newItemName = ""
-                                            newItemDescription = ""
-                                            showAddDialog = false
-                                        }
-                                    }
-                                } else {
-                                    // 可选：可以给用户提示名称为必填项
+@Composable
+fun AddItemDialog(
+    itemsState: MutableState<List<ClockInItem>>,
+    showDialogState: MutableState<Boolean>
+){
+    val clockInItemDao = LocalClockInItemDao.current
+
+    var newItemName by remember { mutableStateOf("") }
+    var newItemDescription by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+
+    // 当 showAddDialog 为 true 时显示 AlertDialog 对话框
+    if (showDialogState.value) {
+        AlertDialog(
+            onDismissRequest = { showDialogState.value = false },
+            title = { Text("Add New Clock-In Item") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = newItemName,
+                        onValueChange = { newItemName = it },
+                        label = { Text("Name") },
+                        placeholder = { Text("Enter item name") }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newItemDescription,
+                        onValueChange = { newItemDescription = it },
+                        label = { Text("Description (Optional)") },
+                        placeholder = { Text("Enter description") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // 当用户输入的 name 非空时，进行添加操作
+                        if (newItemName.isNotBlank()) {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val newItem = ClockInItem(
+                                    name = newItemName,
+                                    description = newItemDescription
+                                )
+                                clockInItemDao.insert(newItem)
+                                val newItems = clockInItemDao.getAllItems()
+                                withContext(Dispatchers.Main) {
+                                    itemsState.value = newItems
+                                    // 清空输入，并关闭对话框
+                                    newItemName = ""
+                                    newItemDescription = ""
+                                    showDialogState.value = false
                                 }
                             }
-                        ) {
-                            Text("Add")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                // 取消操作，清空输入并关闭对话框
-                                newItemName = ""
-                                newItemDescription = ""
-                                showAddDialog = false
-                            }
-                        ) {
-                            Text("Cancel")
+                        } else {
+                            // 可选：可以给用户提示名称为必填项
                         }
                     }
-                )
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        // 取消操作，清空输入并关闭对话框
+                        newItemName = ""
+                        newItemDescription = ""
+                        showDialogState.value = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
             }
-        }
+        )
     }
 }
