@@ -56,7 +56,10 @@ fun ClockInItemDetailScreen(
                     Text("Description: ${item?.description ?: "No description"}")
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Clock-In Records:")
+                    Text("已打卡天数: ${records.size}")
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("打卡记录:")
                     Spacer(modifier = Modifier.height(8.dp))
 
                     LazyColumn {

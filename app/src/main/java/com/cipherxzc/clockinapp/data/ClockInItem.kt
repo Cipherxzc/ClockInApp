@@ -9,5 +9,5 @@ data class ClockInItem(
     @PrimaryKey(autoGenerate = true) val itemId: Int = 0,
     val name: String,
     val description: String?,
-    val clockInCount: Int = 0
+    var clockInCount: Int = 0
 )

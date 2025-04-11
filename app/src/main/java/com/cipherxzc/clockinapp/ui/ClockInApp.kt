@@ -40,7 +40,6 @@ fun ClockInApp(
                 val itemId = backStackEntry.arguments?.getInt("itemId") ?: return@composable
                 ClockInItemDetailScreen(itemId)
             }
-
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material3.Icon
@@ -88,7 +90,7 @@ fun ClockInItemList(
                         itemListFrom = itemsState.unClockedInItems,
                         itemListTo = itemsState.clockedInItems,
                         itemToMove = itemToMove
-                    )
+                    ){ it.clockInCount++ }
                 }
             }
         }
@@ -102,12 +104,12 @@ fun ClockInItemList(
             clockInRecordDao.deleteMostRecentRecordForItem(item.itemId)
             // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
             withContext(Dispatchers.Main) {
-                itemsState.unClockedInItems.value.find { it.itemId == item.itemId }?.let { itemToMove ->
+                itemsState.clockedInItems.value.find { it.itemId == item.itemId }?.let { itemToMove ->
                     moveItem(
-                        itemListFrom = itemsState.unClockedInItems,
-                        itemListTo = itemsState.clockedInItems,
+                        itemListFrom = itemsState.clockedInItems,
+                        itemListTo = itemsState.unClockedInItems,
                         itemToMove = itemToMove
-                    )
+                    ){ it.clockInCount-- }
                 }
             }
         }
@@ -131,8 +133,23 @@ fun ClockInItemList(
                     modifier = Modifier.animateItem(),
                     item = item,
                     onItemClicked = onItemClicked,
-                    onDismiss = onClockIn
-                )
+                    onDismiss = onClockIn,
+                    reverseSwipe = false
+                ){
+                    // 定义在滑动时显示的背景区域
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Done,
+                            contentDescription = "打卡"
+                        )
+                    }
+                }
             }
         }
         // 已打卡列表部分
@@ -145,28 +162,111 @@ fun ClockInItemList(
                 )
             }
             items(itemsState.clockedInItems.value) { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                ItemEntry(
+                    modifier = Modifier.animateItem(),
+                    item = item,
+                    onItemClicked = onItemClicked,
+                    onDismiss = onWithdraw,
+                    reverseSwipe = true
+                ){
+                    // 定义在滑动时显示的背景区域
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(text = item.name)
-                        IconButton(onClick = { onItemClicked(item.itemId) }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.List,
-                                contentDescription = "查看详情"
-                            )
-                        }
-                        // 已打卡条目无需显示打卡按钮
+                        Icon(
+                            imageVector = Icons.Filled.Clear,
+                            contentDescription = "撤销打卡"
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun ItemEntry(
+    modifier: Modifier,
+    item: ClockInItem,
+    onItemClicked: (Int) -> Unit,
+    onDismiss: (ClockInItem) -> Unit,
+    reverseSwipe: Boolean = false,
+    background: @Composable (RowScope.()->Unit)
+){
+    // 使用 SwipeToDismiss 来包装整个列表项
+    val dismissState = rememberDismissState(
+        confirmStateChange = { dismissValue ->
+            // 根据滑动方向判断是到start还是end
+            if (!reverseSwipe) {
+                // 从右往左滑 DismissDirection.EndToStart
+                if (dismissValue == DismissValue.DismissedToStart) {
+                    onDismiss(item)
+                }
+            } else {
+                // 从左往右滑 DismissDirection.StartToEnd
+                if (dismissValue == DismissValue.DismissedToEnd) {
+                    onDismiss(item)
+                }
+            }
+            // 不能使用true，因为我已经自己删除了打卡项，返回true会导致二次删除引起ui出错！！！
+            false
+        }
+    )
+
+    // 根据 reverseSwipe 来设定滑动方向
+    val directions = if (!reverseSwipe) {
+        setOf(DismissDirection.EndToStart)
+    } else {
+        setOf(DismissDirection.StartToEnd)
+    }
+
+    SwipeToDismiss(
+        state = dismissState,
+        directions = directions,
+        background = background,
+        dismissContent = {
+            // 列表项的主要内容
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp))
+                    .padding(8.dp)  // 添加内边距使整体效果更好
+            ) {
+                // 第一行: 条目名称与详情按钮
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.name,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp)
+                    )
+                    IconButton(onClick = { onItemClicked(item.itemId) }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.List,
+                            contentDescription = "查看详情"
+                        )
+                    }
+                }
+                // 第二行: 打卡天数标识
+                Text(
+                    text = "已打卡 ${item.clockInCount} 天",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        modifier = modifier
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
 }
 
 suspend fun getFilteredItems(
@@ -195,79 +295,16 @@ suspend fun getFilteredItems(
     ClockInStatus(mutableStateOf(clockedInItems), mutableStateOf(unClockedInItems))
 }
 
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun ItemEntry(
-    modifier: Modifier,
-    item: ClockInItem,
-    onItemClicked: (Int) -> Unit,
-    onDismiss: (ClockInItem) -> Unit
-){
-    // 使用 SwipeToDismiss 来包装整个列表项
-    val dismissState = rememberDismissState(
-        confirmStateChange = { dismissValue ->
-            // 当滑动到设定的阈值，这里判断是否滑动到了 EndToStart（从右向左）
-            if (dismissValue == DismissValue.DismissedToStart) {
-                onDismiss(item)
-            }
-            // 不能使用true，因为我已经自己删除了打卡项，返回true会导致二次删除引起ui出错！！！
-            false
-        }
-    )
-
-    SwipeToDismiss(
-        state = dismissState,
-        directions = setOf(DismissDirection.EndToStart), // 限制滑动方向为右向左
-        background = {
-            // 定义在滑动时显示的背景区域
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Done,
-                    contentDescription = "打卡"
-                )
-            }
-        },
-        dismissContent = {
-            // 列表项的主要内容
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = item.name, modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp))
-                    IconButton(onClick = { onItemClicked(item.itemId) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "查看详情"
-                        )
-                    }
-                }
-            }
-        },
-        modifier = modifier
-    )
-
-    Spacer(modifier = Modifier.height(10.dp))
-}
-
 fun moveItem(
     itemListFrom: MutableState<List<ClockInItem>>,
     itemListTo: MutableState<List<ClockInItem>>,
-    itemToMove: ClockInItem
+    itemToMove: ClockInItem,
+    updateItem: (ClockInItem) -> Unit
 ){
     val newItemsFrom = itemListFrom.value.toMutableList().apply {
         remove(itemToMove)
     }
+    updateItem(itemToMove)
     val newItemsTo = itemListTo.value.toMutableList().apply {
         add(itemToMove)
     }

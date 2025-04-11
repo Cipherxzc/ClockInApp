@@ -27,7 +27,6 @@ fun AddItemDialog(
     showDialogState: MutableState<Boolean>
 ){
     val clockInItemDao = LocalClockInItemDao.current
-    val clockInRecordDao = LocalClockInRecordDao.current
 
     var newItemName by remember { mutableStateOf("") }
     var newItemDescription by remember { mutableStateOf("") }
