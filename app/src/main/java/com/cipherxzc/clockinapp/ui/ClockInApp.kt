@@ -13,7 +13,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -42,6 +43,7 @@ import com.cipherxzc.clockinapp.data.ClockInRecordDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +98,7 @@ fun ClockInItemListScreen(
             clockInItemDao.incrementClockInCount(item.id)
             val record = ClockInRecord(
                 itemId = item.id,
-                timestamp = System.currentTimeMillis()
+                timestamp = LocalDateTime.now()
             )
             clockInRecordDao.insert(record)
             val updatedItem = clockInItemDao.getAllItems().first { it.id == item.id }
