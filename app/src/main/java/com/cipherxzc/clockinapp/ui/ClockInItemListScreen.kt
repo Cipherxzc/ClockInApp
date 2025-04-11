@@ -36,18 +36,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
+import com.cipherxzc.clockinapp.data.ClockInItemDao
 import com.cipherxzc.clockinapp.data.ClockInRecord
+import com.cipherxzc.clockinapp.data.ClockInRecordDao
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.time.LocalDateTime
+
+data class ClockInStatus(
+    val clockedInItems: MutableState<List<ClockInItem>> = mutableStateOf(emptyList()),
+    val unClockedInItems: MutableState<List<ClockInItem>> = mutableStateOf(emptyList())
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClockInItemListScreen(
     onItemClicked: (Int) -> Unit
 ) {
-    val itemsState = remember { mutableStateOf(listOf<ClockInItem>()) }
+    val itemsState = remember { ClockInStatus() }
     val showDialogState = remember { mutableStateOf(false) }
 
     // 整体页面结构：Scaffold 包含 TopAppBar 和 FloatingActionButton
@@ -80,35 +90,79 @@ fun ClockInItemListScreen(
     }
 }
 
+suspend fun getFilteredItems(
+    clockInItemDao: ClockInItemDao,
+    clockInRecordDao: ClockInRecordDao
+): ClockInStatus = withContext(Dispatchers.IO) {
+    val allItems = clockInItemDao.getAllItems()
+    val today = LocalDate.now()
+
+    val clockedInItems = mutableListOf<ClockInItem>()
+    val unClockedInItems = mutableListOf<ClockInItem>()
+
+    // 并发检查每个条目的最新打卡记录，过滤出未在今日打卡的条目
+    val filteredItems = allItems.map { item ->
+        async {
+            val mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(item.itemId)
+            // 如果没有打卡记录或最后一次打卡的日期不是今天，则未打卡
+            if (mostRecentRecord == null || mostRecentRecord.timestamp.toLocalDate() != today) {
+                unClockedInItems.add(item)
+            } else {
+                clockedInItems.add(item)
+            }
+        }
+    }.awaitAll()
+
+    ClockInStatus(mutableStateOf(clockedInItems), mutableStateOf(unClockedInItems))
+}
+
 @Composable
 fun ClockInItemList(
-    itemsState: MutableState<List<ClockInItem>>,
+    itemsState: ClockInStatus,
     onItemClicked: (Int) -> Unit
-){
+) {
     val clockInItemDao = LocalClockInItemDao.current
     val clockInRecordDao = LocalClockInRecordDao.current
     val coroutineScope = rememberCoroutineScope()
 
-    // 初始加载数据
+    // 初始加载数据，只显示今日未打卡条目
     LaunchedEffect(Unit) {
         coroutineScope.launch(Dispatchers.IO) {
-            itemsState.value = clockInItemDao.getAllItems()
+            val filteredItems = getFilteredItems(
+                clockInItemDao = clockInItemDao,
+                clockInRecordDao = clockInRecordDao
+            )
+
+            withContext(Dispatchers.Main) {
+                itemsState.clockedInItems.value = filteredItems.clockedInItems.value
+                itemsState.unClockedInItems.value = filteredItems.unClockedInItems.value
+            }
         }
     }
 
-    // 打卡操作
+    // 打卡操作，打卡后移除该条目
     val onClockIn: (ClockInItem) -> Unit = { item ->
         coroutineScope.launch(Dispatchers.IO) {
-            clockInItemDao.incrementClockInCount(item.id)
+            // 更新打卡次数
+            clockInItemDao.incrementClockInCount(item.itemId)
+            // 插入打卡记录，记录当前时间
             val record = ClockInRecord(
-                itemId = item.id,
+                itemId = item.itemId,
                 timestamp = LocalDateTime.now()
             )
             clockInRecordDao.insert(record)
-            val updatedItem = clockInItemDao.getAllItems().first { it.id == item.id }
+            // 切换到主线程后从列表中移除该条目
             withContext(Dispatchers.Main) {
-                itemsState.value = itemsState.value.map {
-                    if (it.id == item.id) updatedItem else it
+                itemsState.unClockedInItems.value.find { it.itemId == item.itemId }?.let { itemToMove ->
+                    val unClockedInItems = itemsState.unClockedInItems.value.toMutableList().apply {
+                        remove(itemToMove)
+                    }
+                    val clockedInItems = itemsState.clockedInItems.value.toMutableList().apply {
+                        add(itemToMove)
+                    }
+
+                    itemsState.unClockedInItems.value = unClockedInItems
+                    itemsState.clockedInItems.value = clockedInItems
                 }
             }
         }
@@ -119,24 +173,68 @@ fun ClockInItemList(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        items(itemsState.value) { item ->
-            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+        // 未打卡列表部分
+        if (itemsState.unClockedInItems.value.isNotEmpty()) {
+            item {
+                Text(
+                    text = "未打卡",
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            items(itemsState.unClockedInItems.value) { item ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 ) {
-                    Text(item.name)
-                    IconButton(onClick = { onItemClicked(item.id) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "View Details"
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = item.name)
+                        IconButton(onClick = { onItemClicked(item.itemId) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.List,
+                                contentDescription = "查看详情"
+                            )
+                        }
+                        IconButton(onClick = { onClockIn(item) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Done,
+                                contentDescription = "打卡"
+                            )
+                        }
                     }
-                    IconButton(onClick = { onClockIn(item) }) {
-                        Icon(
-                            imageVector = Icons.Filled.Done,
-                            contentDescription = "Clock In"
-                        )
+                }
+            }
+        }
+        // 已打卡列表部分
+        if (itemsState.clockedInItems.value.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "已打卡",
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            items(itemsState.clockedInItems.value) { item ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = item.name)
+                        IconButton(onClick = { onItemClicked(item.itemId) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.List,
+                                contentDescription = "查看详情"
+                            )
+                        }
+                        // 已打卡条目无需显示打卡按钮
                     }
                 }
             }
@@ -146,10 +244,11 @@ fun ClockInItemList(
 
 @Composable
 fun AddItemDialog(
-    itemsState: MutableState<List<ClockInItem>>,
+    itemsState: ClockInStatus,
     showDialogState: MutableState<Boolean>
 ){
     val clockInItemDao = LocalClockInItemDao.current
+    val clockInRecordDao = LocalClockInRecordDao.current
 
     var newItemName by remember { mutableStateOf("") }
     var newItemDescription by remember { mutableStateOf("") }
@@ -188,9 +287,14 @@ fun AddItemDialog(
                                     description = newItemDescription
                                 )
                                 clockInItemDao.insert(newItem)
-                                val newItems = clockInItemDao.getAllItems()
+
+                                val filteredItems = getFilteredItems(
+                                    clockInItemDao = clockInItemDao,
+                                    clockInRecordDao = clockInRecordDao
+                                )
+
                                 withContext(Dispatchers.Main) {
-                                    itemsState.value = newItems
+                                    itemsState.unClockedInItems.value = itemsState.unClockedInItems.value + newItem
                                     // 清空输入，并关闭对话框
                                     newItemName = ""
                                     newItemDescription = ""

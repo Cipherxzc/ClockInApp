@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "clock_in_items")
 data class ClockInItem(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true) val itemId: Int = 0,
     val name: String,
     val description: String?,
     val clockInCount: Int = 0

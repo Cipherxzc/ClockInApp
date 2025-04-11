@@ -40,21 +40,19 @@ fun ClockInItemDetailScreen(
 
     LaunchedEffect(itemId) {
         coroutineScope.launch(Dispatchers.IO) {
-            item = clockInItemDao.getAllItems().firstOrNull { it.id == itemId }
+            item = clockInItemDao.getItemById(itemId)
             records = clockInRecordDao.getAllRecordsForItem(itemId)
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Item Details") })
+            TopAppBar(title = { Text(item?.name?: "error") })
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             if (item != null) {
                 Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    Text("Name: ${item?.name}")
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text("Description: ${item?.description ?: "No description"}")
                     Spacer(modifier = Modifier.height(16.dp))
 

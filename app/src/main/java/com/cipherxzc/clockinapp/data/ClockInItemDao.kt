@@ -12,6 +12,9 @@ interface ClockInItemDao {
     @Query("SELECT * FROM clock_in_items")
     suspend fun getAllItems(): List<ClockInItem>
 
-    @Query("UPDATE clock_in_items SET clockInCount = clockInCount + 1 WHERE id = :itemId")
+    @Query("SELECT * FROM clock_in_items WHERE itemId = :itemId LIMIT 1")
+    suspend fun getItemById(itemId: Int): ClockInItem?
+
+    @Query("UPDATE clock_in_items SET clockInCount = clockInCount + 1 WHERE itemId = :itemId")
     suspend fun incrementClockInCount(itemId: Int)
 }

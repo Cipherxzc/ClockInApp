@@ -11,4 +11,7 @@ interface ClockInRecordDao {
 
     @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId ORDER BY timestamp DESC")
     suspend fun getAllRecordsForItem(itemId: Int): List<ClockInRecord>
+
+    @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getMostRecentRecordForItem(itemId: Int): ClockInRecord?
 }
