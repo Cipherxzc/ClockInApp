@@ -7,7 +7,7 @@ import androidx.room.Room
 import com.cipherxzc.clockinapp.data.AppDatabase
 import com.cipherxzc.clockinapp.data.ClockInItemDao
 import com.cipherxzc.clockinapp.data.ClockInRecordDao
-import com.cipherxzc.clockinapp.ui.MyApp
+import com.cipherxzc.clockinapp.ui.ClockInApp
 import com.cipherxzc.clockinapp.ui.theme.ScaffoldExampleTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ScaffoldExampleTheme {
-                MyApp(clockInItemDao, clockInRecordDao)
+                ClockInApp(clockInItemDao, clockInRecordDao)
             }
         }
     }
