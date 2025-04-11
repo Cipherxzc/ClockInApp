@@ -2,11 +2,14 @@ package com.cipherxzc.clockinapp.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -36,10 +39,18 @@ fun AddItemDialog(
     if (showDialogState.value) {
         AlertDialog(
             onDismissRequest = { showDialogState.value = false },
-            title = { Text("Add New Clock-In Item") },
+            shape = MaterialTheme.shapes.large, // 使用主题形状
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("添加新的打卡项") },
             text = {
                 Column {
                     OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
                         value = newItemName,
                         onValueChange = { newItemName = it },
                         label = { Text("Name") },
@@ -47,6 +58,12 @@ fun AddItemDialog(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
                         value = newItemDescription,
                         onValueChange = { newItemDescription = it },
                         label = { Text("Description (Optional)") },
@@ -62,7 +79,7 @@ fun AddItemDialog(
                             coroutineScope.launch(Dispatchers.IO) {
                                 val newItem = ClockInItem(
                                     name = newItemName,
-                                    description = newItemDescription
+                                    description = if (newItemDescription.isBlank()) null else newItemDescription
                                 )
                                 clockInItemDao.insert(newItem)
 

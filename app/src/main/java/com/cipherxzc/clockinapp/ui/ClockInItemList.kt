@@ -1,5 +1,10 @@
 package com.cipherxzc.clockinapp.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +28,12 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.rememberDismissState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
 import com.cipherxzc.clockinapp.data.ClockInItemDao
@@ -129,25 +138,34 @@ fun ClockInItemList(
                 )
             }
             items(itemsState.unClockedInItems.value) { item ->
-                ItemEntry(
-                    modifier = Modifier.animateItem(),
-                    item = item,
-                    onItemClicked = onItemClicked,
-                    onDismiss = onClockIn,
-                    reverseSwipe = false
-                ){
-                    // 定义在滑动时显示的背景区域
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.CenterEnd
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically() + fadeIn(),
+                    exit = slideOutVertically() + fadeOut()
+                ) {
+                    ItemEntry(
+                        modifier = Modifier.animateItem(),
+                        item = item,
+                        onItemClicked = onItemClicked,
+                        onDismiss = onClockIn,
+                        reverseSwipe = false
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Done,
-                            contentDescription = "打卡"
-                        )
+                        // 定义在滑动时显示的背景区域
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Done,
+                                contentDescription = "打卡"
+                            )
+                        }
                     }
                 }
             }
@@ -162,25 +180,34 @@ fun ClockInItemList(
                 )
             }
             items(itemsState.clockedInItems.value) { item ->
-                ItemEntry(
-                    modifier = Modifier.animateItem(),
-                    item = item,
-                    onItemClicked = onItemClicked,
-                    onDismiss = onWithdraw,
-                    reverseSwipe = true
-                ){
-                    // 定义在滑动时显示的背景区域
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.CenterStart
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically() + fadeIn(),
+                    exit = slideOutVertically() + fadeOut()
+                ) {
+                    ItemEntry(
+                        modifier = Modifier.animateItem(),
+                        item = item,
+                        onItemClicked = onItemClicked,
+                        onDismiss = onWithdraw,
+                        reverseSwipe = true
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Clear,
-                            contentDescription = "撤销打卡"
-                        )
+                        // 定义在滑动时显示的背景区域
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = MaterialTheme.colorScheme.error,
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "撤销打卡"
+                            )
+                        }
                     }
                 }
             }
@@ -225,48 +252,64 @@ fun ItemEntry(
         setOf(DismissDirection.StartToEnd)
     }
 
-    SwipeToDismiss(
-        state = dismissState,
-        directions = directions,
-        background = background,
-        dismissContent = {
-            // 列表项的主要内容
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp))
-                    .padding(8.dp)  // 添加内边距使整体效果更好
-            ) {
-                // 第一行: 条目名称与详情按钮
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = item.name,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp)
-                    )
-                    IconButton(onClick = { onItemClicked(item.itemId) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "查看详情"
+    Surface(
+        onClick = { onItemClicked(item.itemId) },
+        color = Color.Transparent,
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            shape = MaterialTheme.shapes.medium,
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            SwipeToDismiss(
+                state = dismissState,
+                directions = directions,
+                background = background,
+                dismissContent = {
+                    // 列表项的主要内容
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                            .padding(8.dp)  // 添加内边距使整体效果更好
+                    ) {
+                        // 第一行: 条目名称与详情按钮
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.name,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp)
+                            )
+                            IconButton(onClick = { onItemClicked(item.itemId) }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.List,
+                                    contentDescription = "查看详情"
+                                )
+                            }
+                        }
+                        // 第二行: 打卡天数标识
+                        Text(
+                            text = "已打卡 ${item.clockInCount} 天",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
-                }
-                // 第二行: 打卡天数标识
-                Text(
-                    text = "已打卡 ${item.clockInCount} 天",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
-        modifier = modifier
-    )
+                },
+                modifier = modifier
+            )
 
-    Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
 }
 
 suspend fun getFilteredItems(

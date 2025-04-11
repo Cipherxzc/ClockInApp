@@ -1,7 +1,12 @@
 package com.cipherxzc.clockinapp.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +37,8 @@ fun ClockInItemListScreen(
 
     // 整体页面结构：Scaffold 包含 TopAppBar 和 FloatingActionButton
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars
+            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         topBar = {
             TopAppBar(title = { Text("Clock-In App") })
         },
@@ -46,7 +53,10 @@ fun ClockInItemListScreen(
             }
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Box(modifier = Modifier
+            .padding(innerPadding)
+            .navigationBarsPadding()
+        ) {
             ClockInItemList(
                 itemsState = itemsState,
                 onItemClicked = onItemClicked
