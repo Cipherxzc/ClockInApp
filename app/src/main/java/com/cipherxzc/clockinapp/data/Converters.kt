@@ -16,4 +16,3 @@ class Converters {
         return date?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
     }
 }
-
