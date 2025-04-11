@@ -1,5 +1,6 @@
 package com.cipherxzc.clockinapp.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,15 +12,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.rememberDismissState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
@@ -116,6 +125,7 @@ suspend fun getFilteredItems(
     ClockInStatus(mutableStateOf(clockedInItems), mutableStateOf(unClockedInItems))
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ClockInItemList(
     itemsState: ClockInStatus,
@@ -182,30 +192,60 @@ fun ClockInItemList(
                 )
             }
             items(itemsState.unClockedInItems.value) { item ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = item.name)
-                        IconButton(onClick = { onItemClicked(item.itemId) }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.List,
-                                contentDescription = "查看详情"
-                            )
+                // 使用 SwipeToDismiss 来包装整个列表项
+                val dismissState = rememberDismissState(
+                    confirmStateChange = { dismissValue ->
+                        // 当滑动到设定的阈值，这里判断是否滑动到了 EndToStart（从右向左）
+                        if (dismissValue == DismissValue.DismissedToStart) {
+                            onClockIn(item)
                         }
-                        IconButton(onClick = { onClockIn(item) }) {
+                        true
+                    }
+                )
+
+                SwipeToDismiss(
+                    state = dismissState,
+                    directions = setOf(DismissDirection.EndToStart), // 限制滑动方向为右向左
+                    background = {
+                        // 定义在滑动时显示的背景区域
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(color = MaterialTheme.colorScheme.error, shape = RoundedCornerShape(6.dp))
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
                             Icon(
                                 imageVector = Icons.Filled.Done,
                                 contentDescription = "打卡"
                             )
                         }
-                    }
-                }
+                    },
+                    dismissContent = {
+                        // 列表项的主要内容
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = item.name, modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp))
+                                IconButton(onClick = { onItemClicked(item.itemId) }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.List,
+                                        contentDescription = "查看详情"
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.animateItem()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
         // 已打卡列表部分
