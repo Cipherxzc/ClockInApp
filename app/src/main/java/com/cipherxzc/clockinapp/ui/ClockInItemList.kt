@@ -5,7 +5,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.rememberDismissState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -35,10 +38,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -112,6 +119,21 @@ fun ClockInItemList(
             }
         }
     }
+    // 删除条目处理函数
+    val onDeleteItem: (ClockInItem) -> Unit = { item ->
+        coroutineScope.launch(Dispatchers.IO) {
+            // 删除条目及关联记录
+            clockInItemDao.delete(item)
+            clockInRecordDao.deleteRecordsForItem(item.itemId)
+
+            // 更新列表状态
+            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao)
+            withContext(Dispatchers.Main) {
+                itemsState.clockedInItems.value = newItemState.clockedInItems.value
+                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -126,7 +148,7 @@ fun ClockInItemList(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            items(itemsState.unClockedInItems.value) { item ->
+            items(itemsState.unClockedInItems.value, key = { it.itemId }) { item ->
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically() + fadeIn(),
@@ -137,6 +159,7 @@ fun ClockInItemList(
                         item = item,
                         onItemClicked = onItemClicked,
                         onDismiss = onClockIn,
+                        onDelete = onDeleteItem,
                         reverseSwipe = false
                     ) {
                         // 定义在滑动时显示的背景区域
@@ -168,7 +191,7 @@ fun ClockInItemList(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            items(itemsState.clockedInItems.value) { item ->
+            items(itemsState.clockedInItems.value, key = { it.itemId }) { item ->
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically() + fadeIn(),
@@ -179,6 +202,7 @@ fun ClockInItemList(
                         item = item,
                         onItemClicked = onItemClicked,
                         onDismiss = onWithdraw,
+                        onDelete = onDeleteItem,
                         reverseSwipe = true
                     ) {
                         // 定义在滑动时显示的背景区域
@@ -204,16 +228,44 @@ fun ClockInItemList(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ItemEntry(
     modifier: Modifier,
     item: ClockInItem,
     onItemClicked: (Int) -> Unit,
     onDismiss: (ClockInItem) -> Unit,
+    onDelete: (ClockInItem) -> Unit,
     reverseSwipe: Boolean = false,
-    background: @Composable (RowScope.()->Unit)
-){
+    background: @Composable RowScope.()->Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // 删除确认对话框
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除条目") },
+            text = { Text("确定要永久删除该条目吗？此操作不可撤销。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(item)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("取消")
+                }
+            }
+        )
+    }
     // 使用 SwipeToDismiss 来包装整个列表项
     val dismissState = rememberDismissState(
         confirmStateChange = { dismissValue ->
@@ -242,7 +294,11 @@ fun ItemEntry(
     }
 
     Surface(
-        onClick = { onItemClicked(item.itemId) },
+        modifier = Modifier
+            .combinedClickable(
+                onClick = { onItemClicked(item.itemId) },
+                onLongClick = { showDeleteDialog = true }
+            ),
         color = Color.Transparent,
     ) {
         Card(
@@ -322,5 +378,8 @@ suspend fun getFilteredItems(
         }
     }
 
-    ClockInStatus(mutableStateOf(clockedInItems), mutableStateOf(unClockedInItems))
+    ClockInStatus(
+        mutableStateOf(clockedInItems.toList()),
+        mutableStateOf(unClockedInItems.toList())
+    )
 }

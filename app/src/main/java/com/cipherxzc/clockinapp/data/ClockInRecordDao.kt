@@ -10,14 +10,17 @@ interface ClockInRecordDao {
     @Insert
     suspend fun insert(record: ClockInRecord)
 
+    @Delete
+    suspend fun deleteRecord(record: ClockInRecord)
+
+    @Query("DELETE FROM clock_in_records WHERE itemId = :itemId")
+    suspend fun deleteRecordsForItem(itemId: Int)
+
     @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId ORDER BY timestamp DESC")
     suspend fun getAllRecordsForItem(itemId: Int): List<ClockInRecord>
 
     @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getMostRecentRecordForItem(itemId: Int): ClockInRecord?
-
-    @Delete
-    suspend fun deleteRecord(record: ClockInRecord)
 
     @Query("DELETE FROM clock_in_records WHERE itemId = :itemId")
     suspend fun deleteAllRecordsForItem(itemId: Int)

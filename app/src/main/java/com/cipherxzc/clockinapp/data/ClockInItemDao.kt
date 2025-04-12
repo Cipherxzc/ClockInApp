@@ -1,6 +1,7 @@
 package com.cipherxzc.clockinapp.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 
@@ -8,6 +9,9 @@ import androidx.room.Query
 interface ClockInItemDao {
     @Insert
     suspend fun insert(item: ClockInItem)
+
+    @Delete
+    suspend fun delete(item: ClockInItem)
 
     @Query("SELECT * FROM clock_in_items ORDER BY itemId")
     suspend fun getAllItems(): List<ClockInItem>
