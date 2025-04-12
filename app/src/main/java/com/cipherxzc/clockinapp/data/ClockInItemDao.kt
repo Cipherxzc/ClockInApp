@@ -9,7 +9,7 @@ interface ClockInItemDao {
     @Insert
     suspend fun insert(item: ClockInItem)
 
-    @Query("SELECT * FROM clock_in_items")
+    @Query("SELECT * FROM clock_in_items ORDER BY itemId")
     suspend fun getAllItems(): List<ClockInItem>
 
     @Query("SELECT * FROM clock_in_items WHERE itemId = :itemId LIMIT 1")

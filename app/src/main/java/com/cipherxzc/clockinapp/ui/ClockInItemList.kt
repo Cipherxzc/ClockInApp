@@ -37,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,8 +48,6 @@ import com.cipherxzc.clockinapp.data.ClockInItemDao
 import com.cipherxzc.clockinapp.data.ClockInRecord
 import com.cipherxzc.clockinapp.data.ClockInRecordDao
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -92,15 +89,11 @@ fun ClockInItemList(
                 timestamp = LocalDateTime.now()
             )
             clockInRecordDao.insert(record)
+            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao)
             // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
             withContext(Dispatchers.Main) {
-                itemsState.unClockedInItems.value.find { it.itemId == item.itemId }?.let { itemToMove ->
-                    moveItem(
-                        itemListFrom = itemsState.unClockedInItems,
-                        itemListTo = itemsState.clockedInItems,
-                        itemToMove = itemToMove
-                    ){ it.clockInCount++ }
-                }
+                itemsState.clockedInItems.value = newItemState.clockedInItems.value
+                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
             }
         }
     }
@@ -111,15 +104,11 @@ fun ClockInItemList(
             clockInItemDao.decrementClockInCount(item.itemId)
             // 删除最新的打卡记录
             clockInRecordDao.deleteMostRecentRecordForItem(item.itemId)
+            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao)
             // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
             withContext(Dispatchers.Main) {
-                itemsState.clockedInItems.value.find { it.itemId == item.itemId }?.let { itemToMove ->
-                    moveItem(
-                        itemListFrom = itemsState.clockedInItems,
-                        itemListTo = itemsState.unClockedInItems,
-                        itemToMove = itemToMove
-                    ){ it.clockInCount-- }
-                }
+                itemsState.clockedInItems.value = newItemState.clockedInItems.value
+                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
             }
         }
     }
@@ -324,34 +313,14 @@ suspend fun getFilteredItems(
 
     // 并发检查每个条目的最新打卡记录，过滤出未在今日打卡的条目
     val filteredItems = allItems.map { item ->
-        async {
-            val mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(item.itemId)
-            // 如果没有打卡记录或最后一次打卡的日期不是今天，则未打卡
-            if (mostRecentRecord == null || mostRecentRecord.timestamp.toLocalDate() != today) {
-                unClockedInItems.add(item)
-            } else {
-                clockedInItems.add(item)
-            }
+        val mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(item.itemId)
+        // 如果没有打卡记录或最后一次打卡的日期不是今天，则未打卡
+        if (mostRecentRecord == null || mostRecentRecord.timestamp.toLocalDate() != today) {
+            unClockedInItems.add(item)
+        } else {
+            clockedInItems.add(item)
         }
-    }.awaitAll()
+    }
 
     ClockInStatus(mutableStateOf(clockedInItems), mutableStateOf(unClockedInItems))
-}
-
-fun moveItem(
-    itemListFrom: MutableState<List<ClockInItem>>,
-    itemListTo: MutableState<List<ClockInItem>>,
-    itemToMove: ClockInItem,
-    updateItem: (ClockInItem) -> Unit
-){
-    val newItemsFrom = itemListFrom.value.toMutableList().apply {
-        remove(itemToMove)
-    }
-    updateItem(itemToMove)
-    val newItemsTo = itemListTo.value.toMutableList().apply {
-        add(itemToMove)
-    }
-
-    itemListFrom.value = newItemsFrom
-    itemListTo.value = newItemsTo
 }
