@@ -1,5 +1,6 @@
 package com.cipherxzc.clockinapp.ui
 
+import android.R.attr.top
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -18,10 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,7 +47,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
@@ -77,6 +85,16 @@ fun ClockInItemDetailScreen(
         }
     }
 
+    // 定义嵌套滚动关系
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // 允许父容器优先消耗垂直滚动
+                return Offset(0f, available.y * 0.5f) // 按比例分配滚动优先级
+            }
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         topBar = {
@@ -98,6 +116,7 @@ fun ClockInItemDetailScreen(
                 .padding(innerPadding)
                 .navigationBarsPadding()
                 .fillMaxSize()
+                .nestedScroll(nestedScrollConnection) // 父级嵌套滚动连接
         ) {
             when {
                 isLoading -> {
@@ -115,7 +134,7 @@ fun ClockInItemDetailScreen(
                 }
 
                 item == null -> {
-                    ErrorMessage(message = "无法加载项目详情")
+                    LoadingMessage(message = "数据处理中，请稍后...")
                 }
 
                 else -> {
@@ -123,6 +142,8 @@ fun ClockInItemDetailScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                            .heightIn(max = 500.dp) // 控制上半部分最大高度
                     ) {
                         // 信息卡片
                         InfoCard(
@@ -166,7 +187,12 @@ fun ClockInItemDetailScreen(
                                 content = "暂无打卡记录，滑动列表项进行打卡操作"
                             )
                         } else {
-                            LazyColumn {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(top = 20.dp) // 根据上半部分高度调整
+                                    .nestedScroll(nestedScrollConnection) // 子级共享滚动连接
+                            ) {
                                 itemsIndexed(records) { index, record ->
                                     RecordItem(
                                         index = index + 1,
@@ -271,14 +297,14 @@ private fun RecordItem(index: Int, time: String, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun ErrorMessage(message: String) {
+private fun LoadingMessage(message: String) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Filled.Clear,
+            imageVector = Icons.Filled.Refresh,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(48.dp))

@@ -15,7 +15,6 @@ import com.cipherxzc.clockinapp.data.ClockInRecordDao
 val LocalClockInItemDao = compositionLocalOf<ClockInItemDao> { error("No ClockInItemDao provided") }
 val LocalClockInRecordDao = compositionLocalOf<ClockInRecordDao> { error("No ClockInRecordDao provided") }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClockInApp(
     clockInItemDao: ClockInItemDao,
