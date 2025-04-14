@@ -144,6 +144,14 @@ fun ClockInItemDetailScreen(
                             .verticalScroll(rememberScrollState())
                             .heightIn(max = 500.dp) // 控制上半部分最大高度
                     ) {
+                        Text(
+                            text = "\uD83D\uDCCC 基本信息",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
                         // 信息卡片
                         InfoCard(
                             title = "📝 项目描述",

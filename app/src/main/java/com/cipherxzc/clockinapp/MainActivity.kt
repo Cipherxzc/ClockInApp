@@ -70,10 +70,10 @@ private suspend fun insertDefaultData(
     clockInRecordDao: ClockInRecordDao
 ) {
     val defaultItems = listOf(
-        ClockInItem(name = "早起", clockInCount = 8),
-        ClockInItem(name = "锻炼", clockInCount = 1),
-        ClockInItem(name = "读书", clockInCount = 3),
-        ClockInItem(name = "背单词", clockInCount = 0)
+        ClockInItem(name = "早起", clockInCount = 8, description = "早睡早起身体好！"),
+        ClockInItem(name = "锻炼", clockInCount = 1, description = "无体育，不清华！"),
+        ClockInItem(name = "读书", clockInCount = 3, description = "书山有路勤为径"),
+        ClockInItem(name = "背单词", clockInCount = 0, description = "目标托福105分！")
     )
     val defaultRecords = listOf(
         ClockInRecord(
