@@ -8,6 +8,6 @@ import androidx.room.PrimaryKey
 data class ClockInItem(
     @PrimaryKey(autoGenerate = true) val itemId: Int = 0,
     val name: String,
-    val description: String?,
+    val description: String? = null,
     var clockInCount: Int = 0
 )

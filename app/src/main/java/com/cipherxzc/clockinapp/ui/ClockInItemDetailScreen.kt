@@ -1,6 +1,5 @@
 package com.cipherxzc.clockinapp.ui
 
-import android.R.attr.top
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
