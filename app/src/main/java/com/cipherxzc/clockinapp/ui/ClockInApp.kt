@@ -12,6 +12,7 @@ import com.cipherxzc.clockinapp.data.ClockInItemDao
 import com.cipherxzc.clockinapp.data.ClockInRecordDao
 import com.cipherxzc.clockinapp.ui.main.ClockInItemDetailScreen
 import com.cipherxzc.clockinapp.ui.main.ClockInItemListScreen
+import com.cipherxzc.clockinapp.ui.main.MainNavGraph
 
 val LocalClockInItemDao = compositionLocalOf<ClockInItemDao> { error("No ClockInItemDao provided") }
 val LocalClockInRecordDao = compositionLocalOf<ClockInRecordDao> { error("No ClockInRecordDao provided") }
@@ -27,19 +28,6 @@ fun ClockInApp(
         LocalClockInItemDao provides clockInItemDao,
         LocalClockInRecordDao provides clockInRecordDao
     ) {
-        NavHost(navController = navController, startDestination = "itemList") {
-            composable("itemList") {
-                ClockInItemListScreen { itemId ->
-                    navController.navigate("itemDetail/$itemId")
-                }
-            }
-            composable(
-                "itemDetail/{itemId}",
-                arguments = listOf(navArgument("itemId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val itemId = backStackEntry.arguments?.getInt("itemId") ?: return@composable
-                ClockInItemDetailScreen(itemId)
-            }
-        }
+        MainNavGraph(navController)
     }
 }
