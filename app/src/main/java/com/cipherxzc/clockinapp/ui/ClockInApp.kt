@@ -1,6 +1,5 @@
 package com.cipherxzc.clockinapp.ui
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -11,6 +10,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cipherxzc.clockinapp.data.ClockInItemDao
 import com.cipherxzc.clockinapp.data.ClockInRecordDao
+import com.cipherxzc.clockinapp.ui.main.ClockInItemDetailScreen
+import com.cipherxzc.clockinapp.ui.main.ClockInItemListScreen
 
 val LocalClockInItemDao = compositionLocalOf<ClockInItemDao> { error("No ClockInItemDao provided") }
 val LocalClockInRecordDao = compositionLocalOf<ClockInRecordDao> { error("No ClockInRecordDao provided") }
@@ -28,7 +29,7 @@ fun ClockInApp(
     ) {
         NavHost(navController = navController, startDestination = "itemList") {
             composable("itemList") {
-                ClockInItemListScreen{ itemId ->
+                ClockInItemListScreen { itemId ->
                     navController.navigate("itemDetail/$itemId")
                 }
             }
