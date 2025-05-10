@@ -56,6 +56,7 @@ import com.cipherxzc.clockinapp.data.ClockInRecord
 import com.cipherxzc.clockinapp.data.ClockInRecordDao
 import com.cipherxzc.clockinapp.ui.LocalClockInItemDao
 import com.cipherxzc.clockinapp.ui.LocalClockInRecordDao
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,6 +67,7 @@ import java.time.LocalDateTime
 @Composable
 fun ClockInItemList(
     itemsState: ClockInStatus,
+    currentUser: FirebaseUser?,
     onItemClicked: (Int) -> Unit
 ) {
     val clockInItemDao = LocalClockInItemDao.current
@@ -87,6 +89,8 @@ fun ClockInItemList(
         }
     }
 
+    val userId = currentUser?.uid ?: ""
+
     // 打卡操作
     val onClockIn: (ClockInItem) -> Unit = { item ->
         coroutineScope.launch(Dispatchers.IO) {
@@ -95,6 +99,7 @@ fun ClockInItemList(
             // 插入打卡记录，记录当前时间
             val record = ClockInRecord(
                 itemId = item.itemId,
+                userId = userId,
                 timestamp = LocalDateTime.now()
             )
             clockInRecordDao.insert(record)
@@ -112,7 +117,7 @@ fun ClockInItemList(
             // 递减打卡次数
             clockInItemDao.decrementClockInCount(item.itemId)
             // 删除最新的打卡记录
-            clockInRecordDao.deleteMostRecentRecordForItem(item.itemId)
+            clockInRecordDao.deleteMostRecentRecordByItem(item.itemId)
             val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao)
             // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
             withContext(Dispatchers.Main) {
@@ -126,7 +131,7 @@ fun ClockInItemList(
         coroutineScope.launch(Dispatchers.IO) {
             // 删除条目及关联记录
             clockInItemDao.delete(item)
-            clockInRecordDao.deleteRecordsForItem(item.itemId)
+            clockInRecordDao.deleteRecordsByItem(item.itemId)
 
             // 更新列表状态
             val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao)
@@ -363,7 +368,7 @@ suspend fun getFilteredItems(
     clockInItemDao: ClockInItemDao,
     clockInRecordDao: ClockInRecordDao
 ): ClockInStatus = withContext(Dispatchers.IO) {
-    val allItems = clockInItemDao.getAllItems()
+    val allItems = clockInItemDao.getItemsByUser()
     val today = LocalDate.now()
 
     val clockedInItems = mutableListOf<ClockInItem>()
@@ -371,7 +376,7 @@ suspend fun getFilteredItems(
 
     // 并发检查每个条目的最新打卡记录，过滤出未在今日打卡的条目
     val filteredItems = allItems.map { item ->
-        val mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(item.itemId)
+        val mostRecentRecord = clockInRecordDao.getMostRecentRecordByItem(item.itemId)
         // 如果没有打卡记录或最后一次打卡的日期不是今天，则未打卡
         if (mostRecentRecord == null || mostRecentRecord.timestamp.toLocalDate() != today) {
             unClockedInItems.add(item)

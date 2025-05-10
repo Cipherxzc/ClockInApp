@@ -88,6 +88,7 @@ fun ClockInItemListScreen(
         ) {
             ClockInItemList(
                 itemsState = itemsState,
+                currentUser = currentUser,
                 onItemClicked = onItemClicked
             )
 

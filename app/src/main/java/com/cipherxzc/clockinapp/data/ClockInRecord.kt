@@ -7,6 +7,7 @@ import java.time.LocalDateTime
 @Entity(tableName = "clock_in_records")
 data class ClockInRecord(
     @PrimaryKey(autoGenerate = true) val recordId: Int = 0,
+    val userId: String,
     val itemId: Int,
     val timestamp: LocalDateTime
 )

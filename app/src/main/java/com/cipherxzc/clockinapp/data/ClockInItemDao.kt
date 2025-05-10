@@ -13,8 +13,8 @@ interface ClockInItemDao {
     @Delete
     suspend fun delete(item: ClockInItem)
 
-    @Query("SELECT * FROM clock_in_items ORDER BY itemId")
-    suspend fun getAllItems(): List<ClockInItem>
+    @Query("SELECT * FROM clock_in_items WHERE userId = :userId ORDER BY itemId")
+    suspend fun getItemsByUser(userId: String): List<ClockInItem>
 
     @Query("SELECT * FROM clock_in_items WHERE itemId = :itemId LIMIT 1")
     suspend fun getItemById(itemId: Int): ClockInItem?

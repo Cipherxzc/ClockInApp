@@ -13,6 +13,11 @@ fun MainNavGraph(
     currentUser: FirebaseUser?,
     onLogout: () -> Unit
 ){
+    if (currentUser == null) {
+        ErrorScreen()
+        return
+    }
+
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "itemList") {

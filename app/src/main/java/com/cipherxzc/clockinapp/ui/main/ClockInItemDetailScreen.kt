@@ -80,7 +80,7 @@ fun ClockInItemDetailScreen(
     LaunchedEffect(itemId) {
         coroutineScope.launch(Dispatchers.IO) {
             item = clockInItemDao.getItemById(itemId)
-            records = clockInRecordDao.getAllRecordsForItem(itemId).sortedByDescending { it.timestamp }
+            records = clockInRecordDao.getRecordsForItem(itemId).sortedByDescending { it.timestamp }
             mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(itemId)
             isLoading = false
         }
