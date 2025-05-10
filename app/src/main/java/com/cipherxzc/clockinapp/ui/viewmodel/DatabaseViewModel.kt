@@ -23,7 +23,18 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
     val clockInItemDao by lazy { database.clockInItemDao() }
     val clockInRecordDao by lazy { database.clockInRecordDao() }
 
-    fun insertDefaultData(userId: String) {
+    private var currentUserId: String? = null
+
+    fun setCurrentUserId(userId: String) {
+        currentUserId = userId
+    }
+
+    fun insertDefaultData(userId: String? = currentUserId) {
+        if (userId == null) {
+            // TODO: userId不能为null
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             val defaultItems = listOf(
                 ClockInItem(userId = userId, name = "早起", clockInCount = 8, description = "早睡早起身体好！"),

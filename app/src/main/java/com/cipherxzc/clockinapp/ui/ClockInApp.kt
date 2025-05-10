@@ -38,7 +38,9 @@ fun ClockInApp() {
                         popUpTo("auth") { inclusive = true }
                     }
                 },
-                insertDefaultData = databaseViewModel::insertDefaultData
+                insertDefaultData = { userId ->
+                    databaseViewModel.insertDefaultData(userId)
+                }
             )
         }
         // main 模块
@@ -47,6 +49,7 @@ fun ClockInApp() {
             if (currentUser == null) {
                 ErrorScreen()
             } else{
+                databaseViewModel.setCurrentUserId(currentUser.uid)
                 CompositionLocalProvider(
                     LocalClockInItemDao provides databaseViewModel.clockInItemDao,
                     LocalClockInRecordDao provides databaseViewModel.clockInRecordDao,

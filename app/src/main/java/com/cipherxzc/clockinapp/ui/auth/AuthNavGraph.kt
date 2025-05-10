@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.cipherxzc.clockinapp.ui.viewmodel.AuthViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
 
 @Composable
 fun AuthNavGraph(
@@ -36,7 +37,7 @@ fun AuthNavGraph(
                 onSuccess = {
                     val userId = authViewModel.currentUser()?.uid
                     if (userId == null) {
-                        // Handle error: userId is null
+                        // TODO: Handle error(根据我的理解，不可能出现这种情况)
                         return@RegisterScreen
                     }
                     insertDefaultData(userId)
