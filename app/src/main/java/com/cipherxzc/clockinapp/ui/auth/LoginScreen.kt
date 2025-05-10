@@ -81,8 +81,21 @@ fun LoginScreen(
                 Text(text = it, color = MaterialTheme.colorScheme.error)
             }
             Spacer(modifier = Modifier.height(16.dp))
+            val context = androidx.compose.ui.platform.LocalContext.current
             Button(
-                onClick = { onLogin(email.trim(), password) },
+                onClick = {
+                    when {
+                        email.isBlank() -> {
+                            android.widget.Toast.makeText(context, "请输入邮箱", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        password.isBlank() -> {
+                            android.widget.Toast.makeText(context, "请输入密码", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        else -> onLogin(email.trim(), password)
+                    }
+                },
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {

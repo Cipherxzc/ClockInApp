@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onRegister: (String, String) -> Unit,
+    onRegister: (String, String, String) -> Unit,
     onNavigateToLogin: () -> Unit,
     authState: AuthState,
     onSuccess: () -> Unit
@@ -42,6 +42,8 @@ fun RegisterScreen(
 
     val isLoading = authState is AuthState.Loading
     val errorMessage = (authState as? AuthState.Error)?.message
+
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
@@ -56,6 +58,13 @@ fun RegisterScreen(
         ) {
             Text(text = "注册", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("用户名") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -94,10 +103,28 @@ fun RegisterScreen(
                 Text(text = it, color = MaterialTheme.colorScheme.error)
             }
             Spacer(modifier = Modifier.height(16.dp))
+            val context = androidx.compose.ui.platform.LocalContext.current
             Button(
                 onClick = {
-                    if (password != confirm) return@Button
-                    onRegister(email.trim(), password)
+                    when {
+                        username.isBlank() -> {
+                            android.widget.Toast.makeText(context, "请输入用户名", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        email.isBlank() -> {
+                            android.widget.Toast.makeText(context, "请输入邮箱", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        password.isBlank() || confirm.isBlank() -> {
+                            android.widget.Toast.makeText(context, "请输入密码", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        password != confirm -> {
+                            android.widget.Toast.makeText(context, "两次输入的密码不一致", android.widget.Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        else -> onRegister(username, email.trim(), password)
+                    }
                 },
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()

@@ -44,7 +44,16 @@ fun ClockInApp(
                 LocalClockInItemDao provides clockInItemDao,
                 LocalClockInRecordDao provides clockInRecordDao
             ) {
-                MainNavGraph()
+                val currentUser = viewModel.currentUser()
+                MainNavGraph(
+                    currentUser = currentUser,
+                    onLogout = {
+                        viewModel.logout()
+                        navController.navigate("auth") {
+                            popUpTo("main") { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }

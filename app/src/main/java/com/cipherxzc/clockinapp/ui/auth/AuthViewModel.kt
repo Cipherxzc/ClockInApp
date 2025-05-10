@@ -3,6 +3,7 @@ package com.cipherxzc.clockinapp.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -34,19 +35,38 @@ class AuthViewModel : ViewModel() {
                     _logoutState.value = AuthState.Idle
                     _loginState.value = AuthState.Success
                 }
-                .addOnFailureListener { e -> _loginState.value = AuthState.Error(e.message ?: "登录失败") }
+                .addOnFailureListener { e ->
+                    _loginState.value = AuthState.Error(e.message ?: "登录失败")
+                }
         }
     }
 
-    fun register(email: String, password: String) {
+    fun register(username: String, email: String, password: String) {
         viewModelScope.launch {
             _registerState.value = AuthState.Loading
             auth.createUserWithEmailAndPassword(email, password)
-                .addOnSuccessListener {
+                .addOnSuccessListener { result ->
                     _logoutState.value = AuthState.Idle
-                    _registerState.value = AuthState.Success
+                    // 注册成功后更新 displayName
+                    val firebaseUser = result.user
+                    if (firebaseUser != null) {
+                        val profileUpdates = UserProfileChangeRequest.Builder()
+                            .setDisplayName(username)
+                            .build()
+                        firebaseUser.updateProfile(profileUpdates)
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    _registerState.value = AuthState.Success
+                                } else {
+                                    _registerState.value =
+                                        AuthState.Error(task.exception?.message ?: "更新用户名失败")
+                                }
+                            }
+                    }
                 }
-                .addOnFailureListener { e -> _registerState.value = AuthState.Error(e.message ?: "注册失败") }
+                .addOnFailureListener { e ->
+                    _registerState.value = AuthState.Error(e.message ?: "注册失败")
+                }
         }
     }
 
