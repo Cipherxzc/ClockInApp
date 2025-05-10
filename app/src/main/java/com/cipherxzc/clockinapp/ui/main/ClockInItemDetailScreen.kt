@@ -57,6 +57,7 @@ import com.cipherxzc.clockinapp.data.ClockInItem
 import com.cipherxzc.clockinapp.data.ClockInRecord
 import com.cipherxzc.clockinapp.ui.LocalClockInItemDao
 import com.cipherxzc.clockinapp.ui.LocalClockInRecordDao
+import com.cipherxzc.clockinapp.ui.LocalCurrentUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -69,6 +70,7 @@ fun ClockInItemDetailScreen(
 ) {
     val clockInItemDao = LocalClockInItemDao.current
     val clockInRecordDao = LocalClockInRecordDao.current
+    val currentUser = LocalCurrentUser.current
 
     var item by remember { mutableStateOf<ClockInItem?>(null) }
     var records by remember { mutableStateOf<List<ClockInRecord>>(emptyList()) }
@@ -76,12 +78,13 @@ fun ClockInItemDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
     val timeFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm") }
+    val userId = currentUser.uid
 
     LaunchedEffect(itemId) {
         coroutineScope.launch(Dispatchers.IO) {
             item = clockInItemDao.getItemById(itemId)
-            records = clockInRecordDao.getRecordsForItem(itemId).sortedByDescending { it.timestamp }
-            mostRecentRecord = clockInRecordDao.getMostRecentRecordForItem(itemId)
+            records = clockInRecordDao.getRecordsByItem(userId, itemId).sortedByDescending { it.timestamp }
+            mostRecentRecord = clockInRecordDao.getMostRecentRecordByItem(userId, itemId)
             isLoading = false
         }
     }

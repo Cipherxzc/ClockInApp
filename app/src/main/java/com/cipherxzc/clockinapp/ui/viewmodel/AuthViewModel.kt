@@ -1,4 +1,4 @@
-package com.cipherxzc.clockinapp.ui.auth
+package com.cipherxzc.clockinapp.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

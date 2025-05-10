@@ -44,9 +44,3 @@ fun ErrorScreen() {
         }
     }
 }
-
-@Preview
-@Composable
-fun ErrorScreenPreview() {
-    ErrorScreen()
-}

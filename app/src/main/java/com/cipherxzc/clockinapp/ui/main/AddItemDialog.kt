@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
 import com.cipherxzc.clockinapp.ui.LocalClockInItemDao
+import com.cipherxzc.clockinapp.ui.LocalCurrentUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,10 +32,12 @@ fun AddItemDialog(
     showDialogState: MutableState<Boolean>
 ){
     val clockInItemDao = LocalClockInItemDao.current
+    val currentUser = LocalCurrentUser.current
 
     var newItemName by remember { mutableStateOf("") }
     var newItemDescription by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    val userId = currentUser.uid
 
     // 当 showAddDialog 为 true 时显示 AlertDialog 对话框
     if (showDialogState.value) {
@@ -80,6 +83,7 @@ fun AddItemDialog(
                             coroutineScope.launch(Dispatchers.IO) {
                                 val newItem = ClockInItem(
                                     name = newItemName,
+                                    userId = userId,
                                     description = if (newItemDescription.isBlank()) null else newItemDescription
                                 )
                                 clockInItemDao.insert(newItem)

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.ClockInItem
+import com.cipherxzc.clockinapp.ui.LocalCurrentUser
 import com.google.firebase.auth.FirebaseUser
 
 data class ClockInStatus(
@@ -39,10 +40,11 @@ data class ClockInStatus(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClockInItemListScreen(
-    currentUser: FirebaseUser?,
     onItemClicked: (Int) -> Unit,
     onLogout: () -> Unit
 ) {
+    val currentUser = LocalCurrentUser.current
+
     val itemsState = remember { ClockInStatus() }
     val showDialogState = remember { mutableStateOf(false) }
 
@@ -64,7 +66,7 @@ fun ClockInItemListScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = currentUser?.displayName ?: "tourist")
+                    Text(text = currentUser.displayName ?: "tourist")
                     Button(onClick = onLogout) {
                         Text("登出")
                     }
@@ -88,7 +90,6 @@ fun ClockInItemListScreen(
         ) {
             ClockInItemList(
                 itemsState = itemsState,
-                currentUser = currentUser,
                 onItemClicked = onItemClicked
             )
 
