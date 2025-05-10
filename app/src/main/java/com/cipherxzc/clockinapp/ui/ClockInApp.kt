@@ -32,7 +32,7 @@ fun ClockInApp() {
         // auth 模块
         composable("auth") {
             AuthNavGraph(
-                viewModel=authViewModel,
+                authViewModel=authViewModel,
                 onLoginSuccess = {
                     navController.navigate("main") {
                         popUpTo("auth") { inclusive = true }
