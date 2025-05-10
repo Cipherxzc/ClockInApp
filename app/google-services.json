@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "173166667299",
+    "project_id": "clock-in-app-cc4a8",
+    "storage_bucket": "clock-in-app-cc4a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173166667299:android:20a194eea38eafc79cb396",
+        "android_client_info": {
+          "package_name": "com.cipherxzc.clockinapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXVnu6MkN994qHEPbnvzU7SHYEsMgzjP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
