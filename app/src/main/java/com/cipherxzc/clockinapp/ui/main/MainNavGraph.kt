@@ -13,19 +13,19 @@ import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModelFactory
 
 @Composable
 fun MainNavGraph(
+    userName: String,
     databaseViewModel: DatabaseViewModel,
     onLogout: () -> Unit
 ){
-    val navController = rememberNavController()
-
     val itemListViewModel: ItemListViewModel = viewModel(
         factory = ItemListViewModelFactory(databaseViewModel)
     )
 
+    val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "itemList") {
         composable("itemList") {
             ClockInItemListScreen(
-                user = databaseViewModel.getCurrentUser(),
+                userName = userName,
                 itemListViewModel = itemListViewModel,
                 onItemClicked = { itemId ->
                     navController.navigate("itemDetail/$itemId")
@@ -38,7 +38,7 @@ fun MainNavGraph(
             arguments = listOf(navArgument("itemId") { type = NavType.IntType })
         ) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
-            ClockInItemDetailScreen(itemId)
+            ClockInItemDetailScreen(databaseViewModel, itemId)
         }
     }
 }

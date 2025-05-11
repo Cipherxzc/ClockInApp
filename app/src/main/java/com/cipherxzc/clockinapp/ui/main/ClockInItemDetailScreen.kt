@@ -55,7 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.database.ClockInItem
 import com.cipherxzc.clockinapp.data.database.ClockInRecord
-import com.cipherxzc.clockinapp.ui.LocalDatabaseViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,10 +65,9 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ClockInItemDetailScreen(
+    databaseViewModel: DatabaseViewModel,
     itemId: String,
 ) {
-    val databaseViewModel = LocalDatabaseViewModel.current
-
     var item by remember { mutableStateOf<ClockInItem?>(null) }
     var records by remember { mutableStateOf<List<ClockInRecord>>(emptyList()) }
     var isClockedInToday by remember { mutableStateOf<Boolean>(false) }

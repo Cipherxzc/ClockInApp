@@ -30,7 +30,7 @@ import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClockInItemListScreen(
-    user: String,
+    userName: String,
     itemListViewModel: ItemListViewModel,
     onItemClicked: (String) -> Unit,
     onLogout: () -> Unit
@@ -53,7 +53,7 @@ fun ClockInItemListScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = user)
+                    Text(text = userName)
                     Button(onClick = onLogout) {
                         Text("登出")
                     }

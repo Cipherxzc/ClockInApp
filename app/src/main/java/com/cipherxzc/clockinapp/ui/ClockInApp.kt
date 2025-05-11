@@ -16,8 +16,6 @@ import com.cipherxzc.clockinapp.ui.main.MainNavGraph
 import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
 import com.google.firebase.auth.FirebaseUser
 
-val LocalDatabaseViewModel = compositionLocalOf<DatabaseViewModel> { error("No DatabaseViewModel provided") }
-
 @Composable
 fun ClockInApp() {
     val navController = rememberNavController()
@@ -48,20 +46,17 @@ fun ClockInApp() {
                 ErrorScreen()
             } else{
                 databaseViewModel.setCurrentUser(currentUser.uid)
-                CompositionLocalProvider(
-                    LocalDatabaseViewModel provides databaseViewModel
-                ) {
-                    MainNavGraph(
-                        databaseViewModel = databaseViewModel,
-                        onLogout = {
-                            authViewModel.logout()
-                            databaseViewModel.resetCurrentUser()
-                            navController.navigate("auth") {
-                                popUpTo("main") { inclusive = true }
-                            }
+                MainNavGraph(
+                    userName = currentUser.displayName ?: "tourist",
+                    databaseViewModel = databaseViewModel,
+                    onLogout = {
+                        authViewModel.logout()
+                        databaseViewModel.resetCurrentUser()
+                        navController.navigate("auth") {
+                            popUpTo("main") { inclusive = true }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }

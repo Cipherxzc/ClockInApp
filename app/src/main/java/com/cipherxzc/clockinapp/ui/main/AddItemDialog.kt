@@ -1,5 +1,6 @@
 package com.cipherxzc.clockinapp.ui.main
 
+import android.R.attr.password
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cipherxzc.clockinapp.data.database.ClockInItem
-import com.cipherxzc.clockinapp.ui.LocalDatabaseViewModel
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -74,6 +74,7 @@ fun AddItemDialog(
                 }
             },
             confirmButton = {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 TextButton(
                     onClick = {
                         // 当用户输入的 name 非空时，进行添加操作
@@ -82,8 +83,10 @@ fun AddItemDialog(
                                 name = newItemName,
                                 description = if (newItemDescription.isBlank()) null else newItemDescription
                             )
+                            itemListViewModel.hideDialog()
                         } else {
-                            // TODO：可以给用户提示名称为必填项
+                            android.widget.Toast.makeText(context, "请输入打卡项名称", android.widget.Toast.LENGTH_SHORT).show()
+                            return@TextButton
                         }
                     }
                 ) {
