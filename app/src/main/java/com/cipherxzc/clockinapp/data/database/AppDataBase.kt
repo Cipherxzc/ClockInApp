@@ -1,4 +1,4 @@
-package com.cipherxzc.clockinapp.data
+package com.cipherxzc.clockinapp.data.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

@@ -53,38 +53,33 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.cipherxzc.clockinapp.data.ClockInItem
-import com.cipherxzc.clockinapp.data.ClockInRecord
-import com.cipherxzc.clockinapp.ui.LocalClockInItemDao
-import com.cipherxzc.clockinapp.ui.LocalClockInRecordDao
-import com.cipherxzc.clockinapp.ui.LocalCurrentUser
+import com.cipherxzc.clockinapp.data.database.ClockInItem
+import com.cipherxzc.clockinapp.data.database.ClockInRecord
+import com.cipherxzc.clockinapp.ui.LocalDatabaseViewModel
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ClockInItemDetailScreen(
-    itemId: Int,
+    itemId: String,
 ) {
-    val clockInItemDao = LocalClockInItemDao.current
-    val clockInRecordDao = LocalClockInRecordDao.current
-    val currentUser = LocalCurrentUser.current
+    val databaseViewModel = LocalDatabaseViewModel.current
 
     var item by remember { mutableStateOf<ClockInItem?>(null) }
     var records by remember { mutableStateOf<List<ClockInRecord>>(emptyList()) }
-    var mostRecentRecord by remember { mutableStateOf<ClockInRecord?>(null) }
+    var isClockedInToday by remember { mutableStateOf<Boolean>(false) }
     var isLoading by remember { mutableStateOf(true) }
-    val coroutineScope = rememberCoroutineScope()
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm") }
-    val userId = currentUser.uid
 
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(itemId) {
         coroutineScope.launch(Dispatchers.IO) {
-            item = clockInItemDao.getItemById(itemId)
-            records = clockInRecordDao.getRecordsByItem(userId, itemId).sortedByDescending { it.timestamp }
-            mostRecentRecord = clockInRecordDao.getMostRecentRecordByItem(userId, itemId)
+            item = databaseViewModel.getItem(itemId)
+            records = databaseViewModel.getAllRecords(itemId)
+            isClockedInToday = databaseViewModel.isClockedInToday(itemId)
             isLoading = false
         }
     }
@@ -177,7 +172,7 @@ fun ClockInItemDetailScreen(
                             )
                             StatItem(
                                 icon = Icons.Filled.Star,
-                                value = if (mostRecentRecord?.timestamp?.toLocalDate() == LocalDate.now()) "已完成" else "未完成",
+                                value = if (isClockedInToday) "已完成" else "未完成",
                                 label = "今日打卡"
                             )
                         }
@@ -199,6 +194,12 @@ fun ClockInItemDetailScreen(
                                 content = "暂无打卡记录，滑动列表项进行打卡操作"
                             )
                         } else {
+                            val timeFormatter: (Timestamp) -> String = { timestamp ->
+                                val date = timestamp.toDate()
+                                val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                                formatter.format(date)
+                            }
+
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -208,7 +209,7 @@ fun ClockInItemDetailScreen(
                                 itemsIndexed(records) { index, record ->
                                     RecordItem(
                                         index = index + 1,
-                                        time = record.timestamp.format(timeFormatter),
+                                        time = timeFormatter(record.timestamp),
                                         modifier = Modifier.animateItem()
                                     )
                                     if (index < records.lastIndex) {

@@ -7,8 +7,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.cipherxzc.clockinapp.data.ClockInItemDao
-import com.cipherxzc.clockinapp.data.ClockInRecordDao
+import com.cipherxzc.clockinapp.data.database.ClockInItemDao
+import com.cipherxzc.clockinapp.data.database.ClockInRecordDao
 import com.cipherxzc.clockinapp.ui.auth.AuthNavGraph
 import com.cipherxzc.clockinapp.ui.viewmodel.AuthViewModel
 import com.cipherxzc.clockinapp.ui.main.ErrorScreen
@@ -16,9 +16,7 @@ import com.cipherxzc.clockinapp.ui.main.MainNavGraph
 import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
 import com.google.firebase.auth.FirebaseUser
 
-val LocalClockInItemDao = compositionLocalOf<ClockInItemDao> { error("No ClockInItemDao provided") }
-val LocalClockInRecordDao = compositionLocalOf<ClockInRecordDao> { error("No ClockInRecordDao provided") }
-val LocalCurrentUser = compositionLocalOf<FirebaseUser> { error("No CurrentUser provided") }
+val LocalDatabaseViewModel = compositionLocalOf<DatabaseViewModel> { error("No DatabaseViewModel provided") }
 
 @Composable
 fun ClockInApp() {
@@ -49,15 +47,15 @@ fun ClockInApp() {
             if (currentUser == null) {
                 ErrorScreen()
             } else{
-                databaseViewModel.setCurrentUserId(currentUser.uid)
+                databaseViewModel.setCurrentUser(currentUser.uid)
                 CompositionLocalProvider(
-                    LocalClockInItemDao provides databaseViewModel.clockInItemDao,
-                    LocalClockInRecordDao provides databaseViewModel.clockInRecordDao,
-                    LocalCurrentUser provides currentUser
+                    LocalDatabaseViewModel provides databaseViewModel
                 ) {
                     MainNavGraph(
+                        databaseViewModel = databaseViewModel,
                         onLogout = {
                             authViewModel.logout()
+                            databaseViewModel.resetCurrentUser()
                             navController.navigate("auth") {
                                 popUpTo("main") { inclusive = true }
                             }

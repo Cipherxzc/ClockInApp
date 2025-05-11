@@ -40,105 +40,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.cipherxzc.clockinapp.data.ClockInItem
-import com.cipherxzc.clockinapp.data.ClockInItemDao
-import com.cipherxzc.clockinapp.data.ClockInRecord
-import com.cipherxzc.clockinapp.data.ClockInRecordDao
-import com.cipherxzc.clockinapp.ui.LocalClockInItemDao
-import com.cipherxzc.clockinapp.ui.LocalClockInRecordDao
-import com.cipherxzc.clockinapp.ui.LocalCurrentUser
-import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.LocalDateTime
+import com.cipherxzc.clockinapp.data.database.ClockInItem
+import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ClockInItemList(
-    itemsState: ClockInStatus,
-    onItemClicked: (Int) -> Unit
+    itemListViewModel: ItemListViewModel,
+    onItemClicked: (String) -> Unit
 ) {
-    val clockInItemDao = LocalClockInItemDao.current
-    val clockInRecordDao = LocalClockInRecordDao.current
-    val currentUser = LocalCurrentUser.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val userId = currentUser.uid
-
-    // 初始加载数据，只显示今日未打卡条目
-    LaunchedEffect(Unit) {
-        coroutineScope.launch(Dispatchers.IO) {
-            val filteredItems = getFilteredItems(clockInItemDao, clockInRecordDao, userId)
-
-            withContext(Dispatchers.Main) {
-                itemsState.clockedInItems.value = filteredItems.clockedInItems.value
-                itemsState.unClockedInItems.value = filteredItems.unClockedInItems.value
-            }
-        }
-    }
-
-    // 打卡操作
-    val onClockIn: (ClockInItem) -> Unit = { item ->
-        coroutineScope.launch(Dispatchers.IO) {
-            // 更新打卡次数
-            clockInItemDao.incrementClockInCount(item.itemId)
-            // 插入打卡记录，记录当前时间
-            val record = ClockInRecord(
-                itemId = item.itemId,
-                userId = userId,
-                timestamp = LocalDateTime.now()
-            )
-            clockInRecordDao.insert(record)
-            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao, userId)
-            // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
-            withContext(Dispatchers.Main) {
-                itemsState.clockedInItems.value = newItemState.clockedInItems.value
-                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
-            }
-        }
-    }
-    // 撤销打卡操作
-    val onWithdraw: (ClockInItem) -> Unit = { item ->
-        coroutineScope.launch(Dispatchers.IO) {
-            // 递减打卡次数
-            clockInItemDao.decrementClockInCount(item.itemId)
-            // 删除最新的打卡记录
-            clockInRecordDao.deleteMostRecentRecordByItem(userId, item.itemId)
-            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao, userId)
-            // 切换到主线程后将该条目从未打卡列表移动到已打卡列表
-            withContext(Dispatchers.Main) {
-                itemsState.clockedInItems.value = newItemState.clockedInItems.value
-                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
-            }
-        }
-    }
-    // 删除条目处理函数
-    val onDeleteItem: (ClockInItem) -> Unit = { item ->
-        coroutineScope.launch(Dispatchers.IO) {
-            // 删除条目及关联记录
-            clockInItemDao.delete(item)
-            clockInRecordDao.deleteRecordsByItem(userId, item.itemId)
-
-            // 更新列表状态
-            val newItemState = getFilteredItems(clockInItemDao, clockInRecordDao, userId)
-            withContext(Dispatchers.Main) {
-                itemsState.clockedInItems.value = newItemState.clockedInItems.value
-                itemsState.unClockedInItems.value = newItemState.unClockedInItems.value
-            }
-        }
-    }
+    val clockedInItems by itemListViewModel.clockedInItemsFlow.collectAsState()
+    val unClockedInItems by itemListViewModel.unClockedInItemsFlow.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -146,14 +67,14 @@ fun ClockInItemList(
             .padding(16.dp)
     ) {
         // 未打卡列表部分
-        if (itemsState.unClockedInItems.value.isNotEmpty()) {
+        if (unClockedInItems.isNotEmpty()) {
             item {
                 Text(
                     text = "未打卡",
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            items(itemsState.unClockedInItems.value, key = { it.itemId }) { item ->
+            items(unClockedInItems, key = { it.itemId }) { item ->
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically() + fadeIn(),
@@ -163,8 +84,8 @@ fun ClockInItemList(
                         modifier = Modifier.animateItem(),
                         item = item,
                         onItemClicked = onItemClicked,
-                        onDismiss = onClockIn,
-                        onDelete = onDeleteItem,
+                        onDismiss = itemListViewModel::clockIn,
+                        onDelete = itemListViewModel::deleteItem,
                         reverseSwipe = false
                     ) {
                         // 定义在滑动时显示的背景区域
@@ -188,7 +109,7 @@ fun ClockInItemList(
             }
         }
         // 已打卡列表部分
-        if (itemsState.clockedInItems.value.isNotEmpty()) {
+        if (clockedInItems.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -196,7 +117,7 @@ fun ClockInItemList(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            items(itemsState.clockedInItems.value, key = { it.itemId }) { item ->
+            items(clockedInItems, key = { it.itemId }) { item ->
                 AnimatedVisibility(
                     visible = true,
                     enter = slideInVertically() + fadeIn(),
@@ -206,8 +127,8 @@ fun ClockInItemList(
                         modifier = Modifier.animateItem(),
                         item = item,
                         onItemClicked = onItemClicked,
-                        onDismiss = onWithdraw,
-                        onDelete = onDeleteItem,
+                        onDismiss = itemListViewModel::withdraw,
+                        onDelete = itemListViewModel::deleteItem,
                         reverseSwipe = true
                     ) {
                         // 定义在滑动时显示的背景区域
@@ -238,9 +159,9 @@ fun ClockInItemList(
 fun ItemEntry(
     modifier: Modifier,
     item: ClockInItem,
-    onItemClicked: (Int) -> Unit,
-    onDismiss: (ClockInItem) -> Unit,
-    onDelete: (ClockInItem) -> Unit,
+    onItemClicked: (String) -> Unit,
+    onDismiss: (String) -> Unit,
+    onDelete: (String) -> Unit,
     reverseSwipe: Boolean = false,
     background: @Composable RowScope.()->Unit
 ) {
@@ -255,7 +176,7 @@ fun ItemEntry(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onDelete(item)
+                        onDelete(item.itemId)
                         showDeleteDialog = false
                     }
                 ) {
@@ -278,12 +199,12 @@ fun ItemEntry(
             if (!reverseSwipe) {
                 // 从右往左滑 DismissDirection.EndToStart
                 if (dismissValue == DismissValue.DismissedToStart) {
-                    onDismiss(item)
+                    onDismiss(item.itemId)
                 }
             } else {
                 // 从左往右滑 DismissDirection.StartToEnd
                 if (dismissValue == DismissValue.DismissedToEnd) {
-                    onDismiss(item)
+                    onDismiss(item.itemId)
                 }
             }
             // 不能使用true，因为我已经自己删除了打卡项，返回true会导致二次删除引起ui出错！！！
@@ -360,33 +281,4 @@ fun ItemEntry(
             Spacer(modifier = Modifier.height(6.dp))
         }
     }
-}
-
-suspend fun getFilteredItems(
-    clockInItemDao: ClockInItemDao,
-    clockInRecordDao: ClockInRecordDao,
-    userId: String
-): ClockInStatus = withContext(Dispatchers.IO) {
-
-    val allItems = clockInItemDao.getItemsByUser(userId)
-    val today = LocalDate.now()
-
-    val clockedInItems = mutableListOf<ClockInItem>()
-    val unClockedInItems = mutableListOf<ClockInItem>()
-
-    // 并发检查每个条目的最新打卡记录，过滤出未在今日打卡的条目
-    val filteredItems = allItems.map { item ->
-        val mostRecentRecord = clockInRecordDao.getMostRecentRecordByItem(userId, item.itemId)
-        // 如果没有打卡记录或最后一次打卡的日期不是今天，则未打卡
-        if (mostRecentRecord == null || mostRecentRecord.timestamp.toLocalDate() != today) {
-            unClockedInItems.add(item)
-        } else {
-            clockedInItems.add(item)
-        }
-    }
-
-    ClockInStatus(
-        mutableStateOf(clockedInItems.toList()),
-        mutableStateOf(unClockedInItems.toList())
-    )
 }

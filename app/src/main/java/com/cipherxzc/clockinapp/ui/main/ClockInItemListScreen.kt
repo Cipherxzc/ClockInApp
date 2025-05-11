@@ -22,32 +22,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.cipherxzc.clockinapp.data.ClockInItem
-import com.cipherxzc.clockinapp.ui.LocalCurrentUser
-import com.google.firebase.auth.FirebaseUser
-
-data class ClockInStatus(
-    val clockedInItems: MutableState<List<ClockInItem>> = mutableStateOf(emptyList()),
-    val unClockedInItems: MutableState<List<ClockInItem>> = mutableStateOf(emptyList())
-)
+import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClockInItemListScreen(
-    onItemClicked: (Int) -> Unit,
+    user: String,
+    itemListViewModel: ItemListViewModel,
+    onItemClicked: (String) -> Unit,
     onLogout: () -> Unit
 ) {
-    val currentUser = LocalCurrentUser.current
-
-    val itemsState = remember { ClockInStatus() }
-    val showDialogState = remember { mutableStateOf(false) }
-
     // 整体页面结构：Scaffold 包含 TopAppBar 和 FloatingActionButton
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars
@@ -66,7 +53,7 @@ fun ClockInItemListScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = currentUser.displayName ?: "tourist")
+                    Text(text = user)
                     Button(onClick = onLogout) {
                         Text("登出")
                     }
@@ -77,7 +64,7 @@ fun ClockInItemListScreen(
             FloatingActionButton(
                 onClick = {
                     // 点击添加按钮后显示输入对话框
-                    showDialogState.value = true
+                    itemListViewModel.showDialog()
                 }
             ) {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = "Add New Item")
@@ -89,13 +76,12 @@ fun ClockInItemListScreen(
             .navigationBarsPadding()
         ) {
             ClockInItemList(
-                itemsState = itemsState,
+                itemListViewModel = itemListViewModel,
                 onItemClicked = onItemClicked
             )
 
             AddItemDialog(
-                itemsState = itemsState,
-                showDialogState = showDialogState
+                itemListViewModel = itemListViewModel
             )
         }
     }
