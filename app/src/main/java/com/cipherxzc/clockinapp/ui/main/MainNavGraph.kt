@@ -8,6 +8,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.ItemDetailViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.ItemDetailViewModelFactory
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModelFactory
 
@@ -19,6 +21,9 @@ fun MainNavGraph(
 ){
     val itemListViewModel: ItemListViewModel = viewModel(
         factory = ItemListViewModelFactory(databaseViewModel)
+    )
+    val itemDetailViewModel: ItemDetailViewModel = viewModel(
+        factory = ItemDetailViewModelFactory(databaseViewModel)
     )
 
     val navController = rememberNavController()
@@ -38,7 +43,10 @@ fun MainNavGraph(
             arguments = listOf(navArgument("itemId") { type = NavType.StringType })
         ) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
-            ClockInItemDetailScreen(databaseViewModel, itemId)
+            ClockInItemDetailScreen(
+                itemId = itemId,
+                itemDetailViewModel = itemDetailViewModel,
+            )
         }
     }
 }

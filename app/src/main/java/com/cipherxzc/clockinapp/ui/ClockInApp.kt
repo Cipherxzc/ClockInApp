@@ -1,20 +1,15 @@
 package com.cipherxzc.clockinapp.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.cipherxzc.clockinapp.data.database.ClockInItemDao
-import com.cipherxzc.clockinapp.data.database.ClockInRecordDao
 import com.cipherxzc.clockinapp.ui.auth.AuthNavGraph
 import com.cipherxzc.clockinapp.ui.viewmodel.AuthViewModel
 import com.cipherxzc.clockinapp.ui.main.ErrorScreen
 import com.cipherxzc.clockinapp.ui.main.MainNavGraph
 import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
-import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun ClockInApp() {

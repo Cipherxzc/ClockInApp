@@ -10,26 +10,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class ItemListViewModelFactory(
-    private val databaseViewModel: DatabaseViewModel
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        require(modelClass == ItemListViewModel::class.java)
-        return ItemListViewModel(databaseViewModel) as T
-    }
-}
-
 class ItemListViewModel(
     private val databaseViewModel: DatabaseViewModel
 ) : ViewModel() {
 
-    private val _clockedInItemsFlow =
-        MutableStateFlow<List<ClockInItem>>(emptyList())
+    private val _clockedInItemsFlow = MutableStateFlow<List<ClockInItem>>(emptyList())
     val clockedInItemsFlow: StateFlow<List<ClockInItem>> = _clockedInItemsFlow
 
-    private val _unClockedInItemsFlow =
-        MutableStateFlow<List<ClockInItem>>(emptyList())
+    private val _unClockedInItemsFlow = MutableStateFlow<List<ClockInItem>>(emptyList())
     val unClockedInItemsFlow: StateFlow<List<ClockInItem>> = _unClockedInItemsFlow
 
     private val _showDialogFlow = MutableStateFlow(false)
@@ -87,5 +75,15 @@ class ItemListViewModel(
             databaseViewModel.deleteMostRecentRecord(itemId)
             loadItems()
         }
+    }
+}
+
+class ItemListViewModelFactory(
+    private val databaseViewModel: DatabaseViewModel
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        require(modelClass == ItemListViewModel::class.java)
+        return ItemListViewModel(databaseViewModel) as T
     }
 }

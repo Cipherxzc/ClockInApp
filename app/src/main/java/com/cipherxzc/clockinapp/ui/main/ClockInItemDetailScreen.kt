@@ -3,6 +3,7 @@ package com.cipherxzc.clockinapp.ui.main
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,11 +40,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -53,34 +51,24 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.cipherxzc.clockinapp.data.database.ClockInItem
-import com.cipherxzc.clockinapp.data.database.ClockInRecord
-import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.ItemDetailViewModel
 import com.google.firebase.Timestamp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ClockInItemDetailScreen(
-    databaseViewModel: DatabaseViewModel,
     itemId: String,
+    itemDetailViewModel: ItemDetailViewModel
 ) {
-    var item by remember { mutableStateOf<ClockInItem?>(null) }
-    var records by remember { mutableStateOf<List<ClockInRecord>>(emptyList()) }
-    var isClockedInToday by remember { mutableStateOf<Boolean>(false) }
-    var isLoading by remember { mutableStateOf(true) }
+    val item by itemDetailViewModel.itemFlow.collectAsState()
+    val records by itemDetailViewModel.recordsFlow.collectAsState()
+    val isClockedInToday by itemDetailViewModel.isClockedInTodayFlow.collectAsState()
+    val isLoading by itemDetailViewModel.isLoadingFlow.collectAsState()
 
-    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(itemId) {
-        coroutineScope.launch(Dispatchers.IO) {
-            item = databaseViewModel.getItem(itemId)
-            records = databaseViewModel.getAllRecords(itemId)
-            isClockedInToday = databaseViewModel.isClockedInToday(itemId)
-            isLoading = false
-        }
+        itemDetailViewModel.loadDetail(itemId)
     }
 
     // 定义嵌套滚动关系
