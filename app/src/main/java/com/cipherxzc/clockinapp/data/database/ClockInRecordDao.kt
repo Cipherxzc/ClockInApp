@@ -17,10 +17,10 @@ interface ClockInRecordDao {
     @Query("SELECT * FROM clock_in_records WHERE recordId = :recordId LIMIT 1")
     suspend fun getRecordById(recordId: String): ClockInRecord?
 
-    @Query("DELETE FROM clock_in_records WHERE itemId = :itemId AND userId = :userId")
+    @Query("DELETE FROM clock_in_records WHERE itemId = :itemId AND userId = :userId AND isDeleted = 0")
     suspend fun deleteRecordsByItem(userId: String, itemId: String)
 
-    @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId AND userId = :userId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM clock_in_records WHERE itemId = :itemId AND userId = :userId AND isDeleted = 0 ORDER BY timestamp DESC")
     suspend fun getRecordsByItem(userId: String, itemId: String): List<ClockInRecord>
 
     @Query("SELECT * FROM clock_in_records WHERE userId = :userId AND isSynced = 0")
@@ -30,7 +30,8 @@ interface ClockInRecordDao {
         SELECT EXISTS(
             SELECT 1 FROM clock_in_records 
             WHERE userId = :userId 
-              AND itemId = :itemId 
+              AND itemId = :itemId
+              AND isDeleted = 0
               AND timestamp BETWEEN :startTime AND :endTime
         )
     """)
@@ -39,6 +40,6 @@ interface ClockInRecordDao {
     @Query("UPDATE clock_in_records SET isDeleted = 1 WHERE recordId = :recordId")
     suspend fun markDeleted(recordId: String)
 
-    @Query("SELECT * FROM clock_in_records WHERE userId = :userId AND itemId = :itemId ORDER BY timestamp DESC LIMIT 1")
+    @Query("SELECT * FROM clock_in_records WHERE userId = :userId AND itemId = :itemId AND isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getMostRecentRecord(userId: String, itemId: String): ClockInRecord?
 }

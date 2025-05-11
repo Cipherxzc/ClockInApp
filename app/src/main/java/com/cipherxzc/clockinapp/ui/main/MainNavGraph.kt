@@ -35,7 +35,7 @@ fun MainNavGraph(
         }
         composable(
             "itemDetail/{itemId}",
-            arguments = listOf(navArgument("itemId") { type = NavType.IntType })
+            arguments = listOf(navArgument("itemId") { type = NavType.StringType })
         ) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
             ClockInItemDetailScreen(databaseViewModel, itemId)
