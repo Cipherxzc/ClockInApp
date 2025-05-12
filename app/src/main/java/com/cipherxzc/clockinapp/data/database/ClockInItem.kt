@@ -15,20 +15,4 @@ data class ClockInItem(
     val lastModified: Timestamp = Timestamp.now(),
     val isSynced: Boolean = false,
     val isDeleted: Boolean = false,
-) {
-    fun modify(
-        name: String = this.name,
-        description: String? = this.description,
-        clockInCount: Int = this.clockInCount,
-        isDeleted: Boolean = this.isDeleted
-    ): ClockInItem {
-        return copy(
-            name = name,
-            description = description,
-            clockInCount = clockInCount,
-            isDeleted = isDeleted,
-            lastModified = Timestamp.now(),
-            isSynced = false
-        )
-    }
-}
+)

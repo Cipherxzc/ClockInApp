@@ -14,14 +14,4 @@ data class ClockInRecord(
     val lastModified: Timestamp = Timestamp.now(),
     val isSynced: Boolean = false,
     val isDeleted: Boolean = false,
-) {
-    fun modify(
-        isDeleted: Boolean = this.isDeleted
-    ): ClockInRecord {
-        return copy(
-            isDeleted = isDeleted,
-            lastModified = Timestamp.now(),
-            isSynced = false
-        )
-    }
-}
+)

@@ -27,6 +27,32 @@ class LocalRepository(
             .document().id
     }
 
+    private fun ClockInItem.modify(
+        name: String = this.name,
+        description: String? = this.description,
+        clockInCount: Int = this.clockInCount,
+        isDeleted: Boolean = this.isDeleted
+    ): ClockInItem {
+        return this.copy(
+            name = name,
+            description = description,
+            clockInCount = clockInCount,
+            isDeleted = isDeleted,
+            lastModified = Timestamp.now(),
+            isSynced = false
+        )
+    }
+
+    private fun ClockInRecord.modify(
+        isDeleted: Boolean = this.isDeleted
+    ): ClockInRecord {
+        return this.copy(
+            isDeleted = isDeleted,
+            lastModified = Timestamp.now(),
+            isSynced = false
+        )
+    }
+
     private suspend fun insertOrUpdateItem(item: ClockInItem) {
         itemDao.insertOrUpdate(item)
     }
