@@ -30,7 +30,7 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
         ).build()
     }
 
-    private val localRepository: LocalRepository by lazy {
+    private val localRepo: LocalRepository by lazy {
         LocalRepository(database)
     }
 
@@ -52,14 +52,14 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
-        return localRepository.insertItem(userId, name, description)
+        return localRepo.insertItem(userId, name, description)
     }
 
     suspend fun insertRecord(itemId: String, userId: String? = currentUserId): ClockInRecord {
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
-        return localRepository.insertRecord(userId, itemId)
+        return localRepo.insertRecord(userId, itemId)
     }
 
     fun insertDefaultData(userId: String? = currentUserId) {
@@ -67,36 +67,36 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
             throw IllegalStateException("Current user ID is not set")
         }
         viewModelScope.launch(Dispatchers.IO) {
-            localRepository.insertDefaultData(userId)
+            localRepo.insertDefaultData(userId)
         }
     }
 
-    suspend fun deleteItem(itemId: String) = localRepository.deleteItem(itemId)
-    suspend fun deleteRecord(recordId: String) = localRepository.deleteRecord(recordId)
+    suspend fun deleteItem(itemId: String) = localRepo.deleteItem(itemId)
+    suspend fun deleteRecord(recordId: String) = localRepo.deleteRecord(recordId)
 
     suspend fun deleteMostRecentRecord(itemId: String, userId: String? = currentUserId) {
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
-        localRepository.deleteMostRecentRecord(userId, itemId)
+        localRepo.deleteMostRecentRecord(userId, itemId)
     }
 
     suspend fun getItem(itemId: String): ClockInItem? {
-        return localRepository.getItemById(itemId)
+        return localRepo.getItemById(itemId)
     }
 
     suspend fun getAllItems(userId: String? = currentUserId): List<ClockInItem> {
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
-        return localRepository.getItemsByUser(userId)
+        return localRepo.getItemsByUser(userId)
     }
 
     suspend fun getAllRecords(itemId: String, userId: String? = currentUserId): List<ClockInRecord> {
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
-        return localRepository.getRecordsByItem(userId, itemId)
+        return localRepo.getRecordsByItem(userId, itemId)
     }
 
     suspend fun isClockedInToday(itemId: String, userId: String? = currentUserId): Boolean {
@@ -104,6 +104,26 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
             throw IllegalStateException("Current user ID is not set")
         }
         val today = LocalDate.now(ZoneId.systemDefault())
-        return localRepository.hasClockInOnDay(userId, itemId, today)
+        return localRepo.hasClockInOnDay(userId, itemId, today)
+    }
+
+    suspend fun upsertItems(clockInItems: List<ClockInItem>) {
+        clockInItems.forEach {
+            localRepo.upsertItem(it)
+        }
+    }
+
+    suspend fun upsertRecords(clockInRecords: List<ClockInRecord>) {
+        clockInRecords.forEach {
+            localRepo.upsertRecord(it)
+        }
+    }
+
+    suspend fun getUnsyncedItems(): List<ClockInItem> {
+        return localRepo.getUnsyncedItems(getCurrentUser())
+    }
+
+    suspend fun getUnsyncedRecords(): List<ClockInRecord> {
+        return localRepo.getUnnsyncedRecords(getCurrentUser())
     }
 }

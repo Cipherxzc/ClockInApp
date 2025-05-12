@@ -69,28 +69,28 @@ class LocalRepository(
     }
 
     suspend fun deleteItem(itemId: String) {
-        val item = itemDao.getItemById(itemId)
+        val item = getItemById(itemId)
         item?.let {
-            itemDao.insertOrUpdate(it.modify(
+            insertOrUpdateItem(it.modify(
                 isDeleted = true
             ))
-            recordDao.deleteRecordsByItem(item.userId, itemId)
+            deleteRecordsByItem(item.userId, itemId)
         }
     }
 
     suspend fun incrementClockInCount(itemId: String) {
-        val item = itemDao.getItemById(itemId)
+        val item = getItemById(itemId)
         item?.let {
-            itemDao.insertOrUpdate(it.modify(
+            insertOrUpdateItem(it.modify(
                 clockInCount = it.clockInCount + 1
             ))
         }
     }
 
     suspend fun decrementClockInCount(itemId: String) {
-        val item = itemDao.getItemById(itemId)
+        val item = getItemById(itemId)
         item?.let {
-            itemDao.insertOrUpdate(it.modify(
+            insertOrUpdateItem(it.modify(
                 clockInCount = it.clockInCount - 1
             ))
         }
@@ -99,16 +99,16 @@ class LocalRepository(
     suspend fun getUnsyncedItems(userId: String): List<ClockInItem> =
         itemDao.getUnsyncedItems(userId)
 
-    suspend fun upsertItems(items: List<ClockInItem>) {
-        db.withTransaction {
-            items.forEach {
-                if (it.isDeleted) {
-                    deleteItem(it.itemId)
-                } else {
-                    itemDao.insertOrUpdate(it.copy(
-                        isSynced = true
-                    ))
-                }
+    suspend fun upsertItem(item: ClockInItem) {
+        if (item.isDeleted) {
+            // delete 具有最高的优先级，即使不是最新的，任何客户端delete了其他地方都不该保留
+            deleteItem(item.itemId)
+        } else {
+            val databaseItem = getItemById(item.itemId)
+            if (databaseItem == null || databaseItem.lastModified <= item.lastModified){
+                insertOrUpdateItem(item.copy(
+                    isSynced = true
+                ))
             }
         }
     }
@@ -124,7 +124,10 @@ class LocalRepository(
     }
 
     private suspend fun insertOrUpdateRecord(record: ClockInRecord) {
-        recordDao.insertOrUpdate(record)
+        if (getRecordById(record.recordId) != null) {
+            incrementClockInCount(record.itemId)
+        }
+        insertOrUpdateRecord(record)
     }
 
     suspend fun insertRecord(userId: String, itemId: String): ClockInRecord {
@@ -134,43 +137,44 @@ class LocalRepository(
             itemId = itemId
         )
         insertOrUpdateRecord(record)
-        incrementClockInCount(itemId)
         return record
     }
 
     suspend fun deleteRecord(recordId: String) {
-        val record = recordDao.getRecordById(recordId)
+        val record = getRecordById(recordId)
         record?.let {
-            recordDao.insertOrUpdate(it.modify(
+            insertOrUpdateRecord(it.modify(
                 isDeleted = true
             ))
             decrementClockInCount(it.itemId)
         }
     }
+
+    suspend fun deleteRecordsByItem(userId: String, itemId: String) = recordDao.deleteRecordsByItem(userId, itemId)
+    suspend fun getMostRecentRecord(userId: String, itemId: String) = recordDao.getMostRecentRecord(userId, itemId)
 
     suspend fun deleteMostRecentRecord(userId: String, itemId: String) {
-        val record = recordDao.getMostRecentRecord(userId, itemId)
+        val record = getMostRecentRecord(userId, itemId)
         record?.let {
-            recordDao.insertOrUpdate(it.modify(
+            insertOrUpdateRecord(it.modify(
                 isDeleted = true
             ))
             decrementClockInCount(it.itemId)
         }
     }
 
-    suspend fun getUnnsyncedRecords(userId: String): List<ClockInRecord> =
-        recordDao.getUnsyncedRecords(userId)
+    suspend fun getUnnsyncedRecords(userId: String): List<ClockInRecord> = recordDao.getUnsyncedRecords(userId)
 
-    suspend fun upsertRecords(records: List<ClockInRecord>) {
-        db.withTransaction {
-            records.forEach {
-                if (it.isDeleted) {
-                    deleteRecord(it.recordId)
-                } else {
-                    recordDao.insertOrUpdate(it.copy(
-                        isSynced = true
-                    ))
-                }
+    suspend fun upsertRecord(record: ClockInRecord) {
+        if (record.isDeleted) {
+            // delete 具有最高的优先级，即使不是最新的，任何客户端delete了其他地方都不该保留
+            deleteRecord(record.recordId)
+        } else {
+            val databaseRecord = getRecordById(record.recordId)
+            if (databaseRecord == null || databaseRecord.lastModified <= record.lastModified){
+                insertOrUpdateRecord(record.copy(
+                    isSynced = true
+                ))
             }
         }
     }
@@ -184,28 +188,24 @@ class LocalRepository(
                 itemId    = generateDocumentId(),
                 userId    = userId,
                 name      = "早起",
-                clockInCount = 8,
                 description  = "早睡早起身体好！"
             ),
             ClockInItem(
                 itemId    = generateDocumentId(),
                 userId    = userId,
                 name      = "锻炼",
-                clockInCount = 1,
                 description  = "无体育，不华清！"
             ),
             ClockInItem(
                 itemId    = generateDocumentId(),
                 userId    = userId,
                 name      = "读书",
-                clockInCount = 3,
                 description  = "书山有路勤为径！"
             ),
             ClockInItem(
                 itemId    = generateDocumentId(),
                 userId    = userId,
                 name      = "背单词",
-                clockInCount = 0,
                 description  = "目标托福105分！"
             )
         )

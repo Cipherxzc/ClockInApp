@@ -27,6 +27,7 @@ data class ClockInRecordDto(
 )
 
 // 封装 Firestore 同步逻辑
+// layout: /users/{userId}/items/{itemId}/records/{recordId}
 class CloudRepository(
     private val firestore: FirebaseFirestore
 ) {
