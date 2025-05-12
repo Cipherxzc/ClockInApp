@@ -1,6 +1,8 @@
 package com.cipherxzc.clockinapp.ui.main
 
+import android.app.Application
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -12,6 +14,8 @@ import com.cipherxzc.clockinapp.ui.viewmodel.ItemDetailViewModel
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemDetailViewModelFactory
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModel
 import com.cipherxzc.clockinapp.ui.viewmodel.ItemListViewModelFactory
+import com.cipherxzc.clockinapp.ui.viewmodel.SyncViewModel
+import com.cipherxzc.clockinapp.ui.viewmodel.SyncViewModelFactory
 
 @Composable
 fun MainNavGraph(
@@ -25,6 +29,9 @@ fun MainNavGraph(
     val itemDetailViewModel: ItemDetailViewModel = viewModel(
         factory = ItemDetailViewModelFactory(databaseViewModel)
     )
+    val syncViewModel: SyncViewModel = viewModel(
+        factory = SyncViewModelFactory(LocalContext.current.applicationContext as Application, databaseViewModel)
+    )
 
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "itemList") {
@@ -32,6 +39,7 @@ fun MainNavGraph(
             ClockInItemListScreen(
                 userName = userName,
                 itemListViewModel = itemListViewModel,
+                syncViewModel = syncViewModel,
                 onItemClicked = { itemId ->
                     navController.navigate("itemDetail/$itemId")
                 },

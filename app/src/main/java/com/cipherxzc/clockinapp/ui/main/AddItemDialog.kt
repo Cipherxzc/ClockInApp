@@ -75,6 +75,8 @@ fun AddItemDialog(
                                 name = newItemName,
                                 description = if (newItemDescription.isBlank()) null else newItemDescription
                             )
+                            newItemName = ""
+                            newItemDescription = ""
                             itemListViewModel.hideDialog()
                         } else {
                             android.widget.Toast.makeText(context, "请输入打卡项名称", android.widget.Toast.LENGTH_SHORT).show()

@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.cipherxzc.clockinapp.data.repository.CloudRepository
 import androidx.core.content.edit
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SyncViewModel(
     application: Application,
@@ -40,36 +46,57 @@ class SyncViewModel(
         prefs.edit() { putLong(KEY_LAST_SYNC, millis) }
     }
 
-    suspend fun sync() {
-        _isSyncing.value = true
+    fun sync(
+        onComplete: (() -> Unit)? = null,
+        onError: ((Throwable) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isSyncing.value = true
+            try {
+                val since = loadLastSync()
+                val userId = databaseViewModel.getCurrentUser()
+                val now = Timestamp.now()
 
-        try {
-            val since   = loadLastSync()
-            val userId  = databaseViewModel.getCurrentUser()
-            val now     = Timestamp.now()
+                // 拉取云端增量 Item & Record
+                val updatedItems   = cloudRepo.fetchUpdatedItems(userId, since)
+                databaseViewModel.upsertItems(updatedItems)
 
-            // 拉取云端增量 Item & Record
-            val updatedItems   = cloudRepo.fetchUpdatedItems(userId, since)
-            databaseViewModel.upsertItems(updatedItems)
+                val updatedRecords = cloudRepo.fetchUpdatedRecords(userId, since, updatedItems)
+                databaseViewModel.upsertRecords(updatedRecords)
 
-            val updatedRecords = cloudRepo.fetchUpdatedRecords(userId, since, updatedItems)
-            databaseViewModel.upsertRecords(updatedRecords)
+                // 推送本地未同步的 Item & Record
+                val unsyncedItems   = databaseViewModel.getUnsyncedItems()
+                cloudRepo.pushItems(userId, unsyncedItems)
+                databaseViewModel.upsertItems(unsyncedItems)
 
-            // 推送本地未同步的 Item & Record
-            val unsyncedItems   = databaseViewModel.getUnsyncedItems()
-            cloudRepo.pushItems(userId, unsyncedItems)
-            databaseViewModel.upsertItems(unsyncedItems)
+                val unsyncedRecords = databaseViewModel.getUnsyncedRecords()
+                cloudRepo.pushRecords(userId, unsyncedRecords)
+                databaseViewModel.upsertRecords(unsyncedRecords)
 
-            val unsyncedRecords = databaseViewModel.getUnsyncedRecords()
-            cloudRepo.pushRecords(userId, unsyncedRecords)
-            databaseViewModel.upsertRecords(unsyncedRecords)
+                // 更新本地最后同步时间
+                saveLastSync(now)
 
-            // 更新本地最后同步时间
-            saveLastSync(now)
-        } catch (e: Throwable) {
-            throw e
-        } finally {
-            _isSyncing.value = false
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
+                }
+            } catch (e: Throwable) {
+                withContext(Dispatchers.Main) {
+                    onError?.invoke(e)
+                }
+            } finally {
+                _isSyncing.value = false
+            }
         }
+    }
+}
+
+class SyncViewModelFactory(
+    private val application: Application,
+    private val databaseViewModel: DatabaseViewModel
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        require(modelClass == SyncViewModel::class.java)
+        return SyncViewModel(application, databaseViewModel) as T
     }
 }

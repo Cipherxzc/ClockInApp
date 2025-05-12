@@ -4,6 +4,7 @@ import com.cipherxzc.clockinapp.data.database.ClockInItem
 import com.cipherxzc.clockinapp.data.database.ClockInRecord
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.async
@@ -12,18 +13,20 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 
 // Data Transfer Object for Firestore
+@IgnoreExtraProperties
 data class ClockInItemDto(
-    val name: String,
-    val description: String?,
-    val clockInCount: Int,
-    val lastModified: Timestamp,
-    val isDeleted: Boolean
+    var name: String = "",
+    var description: String? = null,
+    var clockInCount: Int = 0,
+    var lastModified: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
+    var isDeleted: Boolean = false
 )
 
+@IgnoreExtraProperties
 data class ClockInRecordDto(
-    val timestamp: Timestamp,
-    val lastModified: Timestamp,
-    val isDeleted: Boolean
+    var timestamp: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
+    var lastModified: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
+    var isDeleted: Boolean = false
 )
 
 // 封装 Firestore 同步逻辑

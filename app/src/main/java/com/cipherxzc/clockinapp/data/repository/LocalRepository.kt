@@ -107,6 +107,7 @@ class LocalRepository(
             val databaseItem = getItemById(item.itemId)
             if (databaseItem == null || databaseItem.lastModified <= item.lastModified){
                 insertOrUpdateItem(item.copy(
+                    clockInCount = databaseItem?.clockInCount ?: 0,
                     isSynced = true
                 ))
             }
