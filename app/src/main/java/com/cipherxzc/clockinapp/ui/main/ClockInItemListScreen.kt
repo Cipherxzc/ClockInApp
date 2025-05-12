@@ -40,7 +40,21 @@ fun ClockInItemListScreen(
         contentWindowInsets = WindowInsets.systemBars
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         topBar = {
-            TopAppBar(title = { Text("Clock-In App") })
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 15.dp, vertical = 0.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = userName)
+                        Button(onClick = onLogout) {
+                            Text("登出")
+                        }
+                    }
+                })
         },
         bottomBar = {
             BottomAppBar(

@@ -124,10 +124,10 @@ class LocalRepository(
     }
 
     private suspend fun insertOrUpdateRecord(record: ClockInRecord) {
-        if (getRecordById(record.recordId) != null) {
+        if (getRecordById(record.recordId) == null) {
             incrementClockInCount(record.itemId)
         }
-        insertOrUpdateRecord(record)
+        recordDao.insertOrUpdate(record)
     }
 
     suspend fun insertRecord(userId: String, itemId: String): ClockInRecord {
