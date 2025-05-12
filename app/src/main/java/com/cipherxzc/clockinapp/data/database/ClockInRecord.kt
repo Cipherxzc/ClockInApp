@@ -11,7 +11,17 @@ data class ClockInRecord(
     val userId: String,
     val itemId: String,
     val timestamp: Timestamp = Timestamp.now(),
-    var lastModified: Timestamp = Timestamp.now(),
-    var isSynced: Boolean = false,
-    var isDeleted: Boolean = false,
-)
+    val lastModified: Timestamp = Timestamp.now(),
+    val isSynced: Boolean = false,
+    val isDeleted: Boolean = false,
+) {
+    fun modify(
+        isDeleted: Boolean = this.isDeleted
+    ): ClockInRecord {
+        return copy(
+            isDeleted = isDeleted,
+            lastModified = Timestamp.now(),
+            isSynced = false
+        )
+    }
+}

@@ -37,9 +37,6 @@ interface ClockInRecordDao {
     """)
     suspend fun hasRecordInRange(userId: String, itemId: String, startTime: Long, endTime: Long): Boolean
 
-    @Query("UPDATE clock_in_records SET isDeleted = 1 WHERE recordId = :recordId")
-    suspend fun markDeleted(recordId: String)
-
     @Query("SELECT * FROM clock_in_records WHERE userId = :userId AND itemId = :itemId AND isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getMostRecentRecord(userId: String, itemId: String): ClockInRecord?
 }

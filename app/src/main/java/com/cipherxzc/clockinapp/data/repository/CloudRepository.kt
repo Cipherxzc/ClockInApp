@@ -8,13 +8,12 @@ import kotlinx.coroutines.tasks.await
 
 // Data Transfer Object for Firestore
 data class ClockInItemDto(
-    val itemId: String = "",
-    val userId: String = "",
-    val name: String = "",
-    val description: String? = null,
-    val clockInCount: Int = 0,
-    val lastModified: Timestamp = Timestamp.now(),
-    val isDeleted: Boolean = false
+    val itemId: String,
+    val name: String,
+    val description: String?,
+    val clockInCount: Int,
+    val lastModified: Timestamp,
+    val isDeleted: Boolean
 )
 
 // 封装 Firestore 同步逻辑
@@ -25,8 +24,7 @@ class CloudRepository(
 
     // 增量拉取自 lastSyncTime 之后的所有记录
     suspend fun fetchUpdatedSince(lastSync: Timestamp): List<ClockInItemDto> {
-        val query = collection
-            .whereGreaterThan("lastModified", lastSync)
+        val query = collection.whereGreaterThan("lastModified", lastSync)
         val snapshot: QuerySnapshot = query.get().await()
         return snapshot.documents.mapNotNull { it.toObject(ClockInItemDto::class.java) }
     }

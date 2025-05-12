@@ -27,6 +27,10 @@ class LocalRepository(
             .document().id
     }
 
+    private suspend fun insertOrUpdateItem(item: ClockInItem) {
+        itemDao.insertOrUpdate(item)
+    }
+
     suspend fun insertItem(userId: String, name: String, description: String?): ClockInItem {
         val item = ClockInItem(
             itemId = generateDocumentId(),
@@ -38,61 +42,36 @@ class LocalRepository(
         return item
     }
 
-    suspend fun insertRecord(userId: String, itemId: String): ClockInRecord {
-        val record = ClockInRecord(
-            recordId = generateDocumentId(),
-            userId = userId,
-            itemId = itemId
-        )
-        insertOrUpdateRecord(record)
-        itemDao.incrementClockInCount(itemId)
-        return record
-    }
-
-    suspend fun insertOrUpdateItem(item: ClockInItem) {
-        item.lastModified = Timestamp.now()
-        item.isSynced = false
-        itemDao.insertOrUpdate(item)
-    }
-
-    suspend fun insertOrUpdateRecord(record: ClockInRecord) {
-        record.lastModified = Timestamp.now()
-        record.isSynced = false
-        recordDao.insertOrUpdate(record)
-    }
-
     suspend fun deleteItem(itemId: String) {
         val item = itemDao.getItemById(itemId)
         item?.let {
-            it.isDeleted = true
-            itemDao.insertOrUpdate(it)
+            itemDao.insertOrUpdate(it.modify(
+                isDeleted = true
+            ))
             recordDao.deleteRecordsByItem(item.userId, itemId)
         }
     }
 
-    suspend fun deleteRecord(recordId: String) {
-        val record = recordDao.getRecordById(recordId)
-        record?.let {
-            it.isDeleted = true
-            recordDao.insertOrUpdate(it)
-            itemDao.decrementClockInCount(it.itemId)
+    suspend fun incrementClockInCount(itemId: String) {
+        val item = itemDao.getItemById(itemId)
+        item?.let {
+            itemDao.insertOrUpdate(it.modify(
+                clockInCount = it.clockInCount + 1
+            ))
         }
     }
 
-    suspend fun deleteMostRecentRecord(userId: String, itemId: String) {
-        val record = recordDao.getMostRecentRecord(userId, itemId)
-        record?.let {
-            it.isDeleted = true
-            recordDao.insertOrUpdate(it)
-            itemDao.decrementClockInCount(it.itemId)
+    suspend fun decrementClockInCount(itemId: String) {
+        val item = itemDao.getItemById(itemId)
+        item?.let {
+            itemDao.insertOrUpdate(it.modify(
+                clockInCount = it.clockInCount - 1
+            ))
         }
     }
 
     suspend fun getUnsyncedItems(userId: String): List<ClockInItem> =
         itemDao.getUnsyncedItems(userId)
-
-    suspend fun getUnnsyncedRecords(userId: String): List<ClockInRecord> =
-        recordDao.getUnsyncedRecords(userId)
 
     suspend fun upsertItems(items: List<ClockInItem>) {
         db.withTransaction {
@@ -100,37 +79,16 @@ class LocalRepository(
                 if (it.isDeleted) {
                     deleteItem(it.itemId)
                 } else {
-                    it.isSynced = true
-                    itemDao.insertOrUpdate(it)
+                    itemDao.insertOrUpdate(it.copy(
+                        isSynced = true
+                    ))
                 }
             }
         }
     }
 
-    suspend fun upsertRecords(records: List<ClockInRecord>) {
-        db.withTransaction {
-            records.forEach {
-                if (it.isDeleted) {
-                    deleteRecord(it.recordId)
-                } else {
-                    it.isSynced = true
-                    recordDao.insertOrUpdate(it)
-                }
-            }
-        }
-    }
-
-    suspend fun getItemById(itemId: String): ClockInItem? =
-        itemDao.getItemById(itemId)
-
-    suspend fun getItemsByUser(userId: String): List<ClockInItem> =
-        itemDao.getItemsByUser(userId)
-
-    suspend fun getRecordsByItem(userId: String, itemId: String): List<ClockInRecord> =
-        recordDao.getRecordsByItem(userId, itemId)
-
-    suspend fun getRecordById(recordId: String): ClockInRecord? =
-        recordDao.getRecordById(recordId)
+    suspend fun getItemById(itemId: String): ClockInItem? = itemDao.getItemById(itemId)
+    suspend fun getItemsByUser(userId: String): List<ClockInItem> = itemDao.getItemsByUser(userId)
 
     suspend fun hasClockInOnDay(userId: String, itemId: String, day: LocalDate): Boolean {
         val zoneId = ZoneId.systemDefault()
@@ -138,6 +96,61 @@ class LocalRepository(
         val endDateTimeMillis = day.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
         return recordDao.hasRecordInRange(userId, itemId, startDateTimeMillis, endDateTimeMillis)
     }
+
+    private suspend fun insertOrUpdateRecord(record: ClockInRecord) {
+        recordDao.insertOrUpdate(record)
+    }
+
+    suspend fun insertRecord(userId: String, itemId: String): ClockInRecord {
+        val record = ClockInRecord(
+            recordId = generateDocumentId(),
+            userId = userId,
+            itemId = itemId
+        )
+        insertOrUpdateRecord(record)
+        incrementClockInCount(itemId)
+        return record
+    }
+
+    suspend fun deleteRecord(recordId: String) {
+        val record = recordDao.getRecordById(recordId)
+        record?.let {
+            recordDao.insertOrUpdate(it.modify(
+                isDeleted = true
+            ))
+            decrementClockInCount(it.itemId)
+        }
+    }
+
+    suspend fun deleteMostRecentRecord(userId: String, itemId: String) {
+        val record = recordDao.getMostRecentRecord(userId, itemId)
+        record?.let {
+            recordDao.insertOrUpdate(it.modify(
+                isDeleted = true
+            ))
+            decrementClockInCount(it.itemId)
+        }
+    }
+
+    suspend fun getUnnsyncedRecords(userId: String): List<ClockInRecord> =
+        recordDao.getUnsyncedRecords(userId)
+
+    suspend fun upsertRecords(records: List<ClockInRecord>) {
+        db.withTransaction {
+            records.forEach {
+                if (it.isDeleted) {
+                    deleteRecord(it.recordId)
+                } else {
+                    recordDao.insertOrUpdate(it.copy(
+                        isSynced = true
+                    ))
+                }
+            }
+        }
+    }
+
+    suspend fun getRecordsByItem(userId: String, itemId: String): List<ClockInRecord> = recordDao.getRecordsByItem(userId, itemId)
+    suspend fun getRecordById(recordId: String): ClockInRecord? = recordDao.getRecordById(recordId)
 
     suspend fun insertDefaultData(userId: String) = withContext(Dispatchers.IO) {
         val defaultItems = listOf(

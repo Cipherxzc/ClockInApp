@@ -23,13 +23,4 @@ interface ClockInItemDao {
 
     @Query("SELECT * FROM clock_in_items WHERE userId = :userId AND isSynced = 0")
     suspend fun getUnsyncedItems(userId: String): List<ClockInItem>
-
-    @Query("UPDATE clock_in_items SET clockInCount = clockInCount + 1 WHERE itemId = :itemId")
-    suspend fun incrementClockInCount(itemId: String)
-
-    @Query("UPDATE clock_in_items SET clockInCount = clockInCount - 1 WHERE itemId = :itemId")
-    suspend fun decrementClockInCount(itemId: String)
-
-    @Query("UPDATE clock_in_items SET isDeleted = 1 WHERE itemId = :itemId")
-    suspend fun markDeleted(itemId: String)
 }
