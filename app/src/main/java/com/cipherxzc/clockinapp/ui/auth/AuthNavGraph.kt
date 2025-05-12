@@ -14,7 +14,7 @@ import com.cipherxzc.clockinapp.ui.viewmodel.DatabaseViewModel
 fun AuthNavGraph(
     authViewModel: AuthViewModel,
     onLoginSuccess: () -> Unit,
-    insertDefaultData: (String) -> Unit
+    insertDefaultData: (String, (() -> Unit)?) -> Unit
 ) {
     val navController = rememberNavController()
 
@@ -40,8 +40,7 @@ fun AuthNavGraph(
                         // TODO: Handle error(根据我的理解，不可能出现这种情况)
                         return@RegisterScreen
                     }
-                    insertDefaultData(userId)
-                    onLoginSuccess()
+                    insertDefaultData(userId, onLoginSuccess)
                 }
             )
         }

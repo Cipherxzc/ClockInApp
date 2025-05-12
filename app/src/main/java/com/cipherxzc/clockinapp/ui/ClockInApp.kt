@@ -29,8 +29,8 @@ fun ClockInApp() {
                         popUpTo("auth") { inclusive = true }
                     }
                 },
-                insertDefaultData = { userId ->
-                    databaseViewModel.insertDefaultData(userId)
+                insertDefaultData = { userId, onComplete ->
+                    databaseViewModel.insertDefaultData(userId, onComplete)
                 }
             )
         }

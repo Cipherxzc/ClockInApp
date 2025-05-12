@@ -15,6 +15,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Month
@@ -62,12 +63,18 @@ class DatabaseViewModel(application: Application) : AndroidViewModel(application
         return localRepo.insertRecord(userId, itemId)
     }
 
-    fun insertDefaultData(userId: String? = currentUserId) {
+    fun insertDefaultData(userId: String? = currentUserId, onComplete: (() -> Unit)? = null) {
         if (userId == null) {
             throw IllegalStateException("Current user ID is not set")
         }
         viewModelScope.launch(Dispatchers.IO) {
             localRepo.insertDefaultData(userId)
+
+            onComplete?.let {
+                withContext(Dispatchers.Main) {
+                    it()
+                }
+            }
         }
     }
 
